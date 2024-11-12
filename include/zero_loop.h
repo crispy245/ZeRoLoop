@@ -13,6 +13,15 @@ struct ZeRoLoop
 
                 Register(size_t width = 32) : data(width, bit(0)) {}
                 Register(vector<bit> &bits) : data(bits) {}
+                Register(bigint value, size_t width) : data(width, bit(0))
+                {
+                        vector<bit> value_bits = bit_vector_from_integer(value);
+
+                        for (bigint i = 0; i < width && i < value_bits.size(); i++)
+                        {
+                                data[i] = value_bits[i];
+                        }
+                }
 
                 bit get_bit(size_t index) const
                 {
@@ -233,6 +242,8 @@ struct ZeRoLoop
                         Register negated_rs2(rs1_value.width());
                         register_negate(negated_rs2, rs2_value);
                         register_add(sub_result, rs1_value, negated_rs2, 1);
+
+                        
 
                         Register result(reg_file.at(0).width());
                         for (bigint i = 0; i < result.width(); i++)
