@@ -7,7 +7,7 @@ SOURCES = $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 program: src/main.cpp $(SOURCES)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
-run:
+run: clean program
 	./program
 
 clean:
