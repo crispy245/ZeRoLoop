@@ -188,71 +188,258 @@ struct ZeRoLoop
 
         struct ALU
         {
+                // ALU operation codes (matches RISC-V)
+                enum class AluOp
+                {
+                        ADD = 0,  // 0000
+                        SUB = 1,  // 0001
+                        SLL = 2,  // 0010
+                        SLT = 3,  // 0011
+                        SLTU = 4, // 0100
+                        XOR = 5,  // 0101
+                        SRL = 6,  // 0110
+                        SRA = 7,  // 0111
+                        OR = 8,   // 1000
+                        AND = 9,  // 1001
+                };
+
+                // Helper functions for arithmetic
                 static inline void half_adder(bit &s, bit &c, bit a, bit b)
                 {
                         s = a ^ b;
                         c = a & b;
                 }
 
-                static inline void full_adder(bit &s, bit &c, bit a, bit b)
+                static inline void full_adder(bit &s, bit &c, bit a, bit b, bit cin)
                 {
                         bit t = (a ^ b);
-                        s = t ^ c;
-                        c = (a & b) | (c & t);
+                        s = t ^ cin;
+                        c = (a & b) | (cin & t);
                 }
 
-                Register register_add(Register &ret, Register a, Register b, bit c_in)
+                Register add(Register &ret, Register a, Register b)
                 {
-                        bit c = c_in;
-                        for (bigint i = 0; i < b.width(); i++)
-                                full_adder(ret.at(i), c, a.at(i), b.at(i));
-
-                        for (bigint i = b.width(); i < a.width(); i++)
-                                half_adder(ret.at(i), c, a.at(i), c);
-
-                        if (a.width() < ret.width())
-                                ret.at(a.width()) = c;
-
-                        return ret;
-                }
-
-                Register register_negate(Register &ret, Register a)
-                {
+                        bit c;
                         for (bigint i = 0; i < a.width(); i++)
-                                ret.at(i) = ~a.at(i);
+                        {
+                                full_adder(ret.at(i), c, a.at(i), b.at(i), c);
+                        }
                         return ret;
                 }
 
-                Register alu(Instruction &current_inst, RegisterFile &reg_file)
+                Register two_complement(Register b)
                 {
-                        Register rs1_idx(current_inst.rs1);
-                        Register rs2_idx(current_inst.rs2);
-                        Register rs1_value = register_read(reg_file, 0, reg_file.count(), rs1_idx, rs1_idx.width());
-                        Register rs2_value = register_read(reg_file, 0, reg_file.count(), rs2_idx, rs2_idx.width());
+                        Register complement(b.width());
 
-                        bit is_add = ~current_inst.op[1] & ~current_inst.op[0];
-                        bit is_sub = ~current_inst.op[1] & current_inst.op[0];
-                        bit is_nand = current_inst.op[1] & ~current_inst.op[0];
-                        bit is_or = current_inst.op[1] & current_inst.op[0];
-
-                        Register add_result(rs1_value.width());
-                        register_add(add_result, rs1_value, rs2_value, 0);
-
-                        Register sub_result(rs1_value.width());
-                        Register negated_rs2(rs1_value.width());
-                        register_negate(negated_rs2, rs2_value);
-                        register_add(sub_result, rs1_value, negated_rs2, 1);
-
-                        
-
-                        Register result(reg_file.at(0).width());
-                        for (bigint i = 0; i < result.width(); i++)
+                        // Invert all bits (one's complement)
+                        for (size_t i = 0; i < b.width(); ++i)
                         {
-                                bit temp1 = is_add.mux(add_result.at(i), sub_result.at(i));
-                                bit temp2 = is_nand.mux(add_result.at(i), sub_result.at(i));
-                                result.at(i) = (~current_inst.op[1]).mux(temp1, temp2);
+                                complement.at(i) = ~b.at(i);
                         }
 
+                        Register register_holding_1(1, b.width());
+                        add(complement, complement, register_holding_1);
+
+                        return complement;
+                }
+
+                Register subtract(Register &result, Register a, Register b)
+                {
+                        Register b_complement = two_complement(b);
+                        bit carry = bit(0);
+
+                        add(result, a, b_complement);
+
+                        return result;
+                }
+
+                Register logical_shift_left(Register a, Register shift_amount)
+                {
+                        Register result(a.width());
+
+                        for (bigint i = 0; i < a.width(); i++)
+                        {
+                                bit shifted_bit = bit(0);
+
+                                bigint src_pos = i;
+                                for (bigint j = 0; j < shift_amount.width(); j++)
+                                {
+                                        if (shift_amount.at(j).value())
+                                        {
+                                                src_pos -= (1 << j);
+                                        }
+                                }
+
+                                if (src_pos >= 0 && src_pos < a.width())
+                                {
+                                        shifted_bit = a.at(src_pos);
+                                }
+
+                                result.at(i) = shifted_bit;
+                        }
+                        return result;
+                }
+
+                Register logical_shift_right(Register a, Register shift_amount)
+                {
+                        Register result(a.width());
+
+                        for (bigint i = 0; i < a.width(); i++)
+                        {
+                                bit shifted_bit = bit(0);
+
+                                bigint src_pos = i;
+                                for (bigint j = 0; j < shift_amount.width(); j++)
+                                {
+                                        if (shift_amount.at(j).value())
+                                        {
+                                                src_pos += (1 << j);
+                                        }
+                                }
+
+                                if (src_pos >= 0 && src_pos < a.width())
+                                {
+                                        shifted_bit = a.at(src_pos);
+                                }
+
+                                result.at(i) = shifted_bit;
+                        }
+                        return result;
+                }
+
+                Register arithmetic_shift_right(Register a, Register shift_amount)
+                {
+                        Register result(a.width());
+                        bit sign_bit = a.at(a.width() - 1);
+
+                        for (bigint i = 0; i < a.width(); i++)
+                        {
+                                bit shifted_bit = sign_bit;
+
+                                bigint src_pos = i;
+                                for (bigint j = 0; j < shift_amount.width(); j++)
+                                {
+                                        if (shift_amount.at(j).value())
+                                        {
+                                                src_pos += (1 << j);
+                                        }
+                                }
+
+                                if (src_pos >= 0 && src_pos < a.width())
+                                {
+                                        shifted_bit = a.at(src_pos);
+                                }
+
+                                result.at(i) = shifted_bit;
+                        }
+                        return result;
+                }
+
+                // Helper for comparison - no conditionals
+                static inline bit bit_vector_compare(const vector<bit> &v, const vector<bit> &w)
+                {
+                        assert(v.size() == w.size());
+                        bit ret = v.at(0) ^ w.at(0);
+                        for (bigint i = 1; i < v.size(); i++)
+                        {
+                                ret |= v.at(i) ^ w.at(i);
+                        }
+                        return ret;
+                }
+
+                Register compare_slt(Register a, Register b)
+                {
+                        Register result(a.width());
+                        Register sub_result(a.width());
+
+                        // Perform subtraction
+                        subtract(sub_result, a, b);
+
+                        // Copy sign bit to result[0], all other bits are initialized to 0
+                        result.at(0) = sub_result.at(a.width() - 1);
+                        return result;
+                }
+
+                Register compare_sltu(Register a, Register b)
+                {
+                        Register result(a.width());
+                        bit carry = bit(1); // Start with borrow
+
+                        // Propagate through all bits
+                        for (bigint i = 0; i < a.width(); i++)
+                        {
+                                bit t = (a.at(i) ^ b.at(i));
+                                bit next_carry = (a.at(i) & b.at(i)) | (carry & t);
+                                carry = next_carry;
+                        }
+
+                        // Set result[0] to ~carry, rest are initialized to 0
+                        result.at(0) = ~carry;
+                        return result;
+                }
+
+                // Main ALU function
+                Register alu_execute(Register &a, Register &b, vector<bit> alu_op)
+                {
+                        Register result(a.width());
+
+                        // Decode operation using the alu_op bits
+                        bit is_add = ~alu_op[3] & ~alu_op[2] & ~alu_op[1] & ~alu_op[0];
+                        bit is_sub = ~alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];
+                        bit is_sll = ~alu_op[3] & ~alu_op[2] & alu_op[1] & ~alu_op[0];
+                        bit is_slt = ~alu_op[3] & ~alu_op[2] & alu_op[1] & alu_op[0];
+                        bit is_sltu = ~alu_op[3] & alu_op[2] & ~alu_op[1] & ~alu_op[0];
+                        bit is_xor = ~alu_op[3] & alu_op[2] & ~alu_op[1] & alu_op[0];
+                        bit is_srl = ~alu_op[3] & alu_op[2] & alu_op[1] & ~alu_op[0];
+                        bit is_sra = ~alu_op[3] & alu_op[2] & alu_op[1] & alu_op[0];
+                        bit is_or = alu_op[3] & ~alu_op[2] & ~alu_op[1] & ~alu_op[0];
+                        bit is_and = alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];
+
+                        // Compute all possible results
+                        Register add_result(a.width());
+                        Register sub_result(a.width());
+                        Register sll_result(a.width());
+                        Register srl_result(a.width());
+                        Register sra_result(a.width());
+                        Register slt_result(a.width());
+                        Register sltu_result(a.width());
+
+                        // Perform operations and print each result
+                        add(add_result, a, b);
+                        add_result.print("ADD Result");
+
+                        subtract(sub_result, a, b);
+                        sub_result.print("SUB Result");
+
+                        sll_result = logical_shift_left(a, b);
+                        sll_result.print("SLL Result");
+
+                        srl_result = logical_shift_right(a, b);
+                        srl_result.print("SRL Result");
+
+                        sra_result = arithmetic_shift_right(a, b);
+                        sra_result.print("SRA Result");
+
+                        slt_result = compare_slt(a, b);
+                        slt_result.print("SLT Result");
+
+                        sltu_result = compare_sltu(a, b);
+                        sltu_result.print("SLTU Result");
+
+                        // Select the final result based on alu_op
+                        for (bigint i = 0; i < result.width(); i++)
+                        {
+                                result.at(i) = is_add.mux(add_result.at(i),
+                                                          is_sub.mux(sub_result.at(i),
+                                                                     is_sll.mux(sll_result.at(i),
+                                                                                is_srl.mux(srl_result.at(i),
+                                                                                           is_sra.mux(sra_result.at(i),
+                                                                                                      is_slt.mux(slt_result.at(i),
+                                                                                                                 is_sltu.mux(sltu_result.at(i),
+                                                                                                                             result.at(i))))))));
+                        }
+
+                        result.print("Final ALU Result");
                         return result;
                 }
         };
