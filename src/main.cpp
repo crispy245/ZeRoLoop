@@ -1,15 +1,18 @@
 #include <iostream>
 #include "../include/zero_loop.h"
 
-void print_register(const ZeRoLoop::Register& reg, const std::string& name) {
+void print_register(const ZeRoLoop::Register &reg, const std::string &name)
+{
     std::cout << name << ": ";
-    for (int i = reg.data.size() - 1; i >= 0; i--) {
+    for (int i = reg.data.size() - 1; i >= 0; i--)
+    {
         std::cout << reg.data[i].value();
     }
     std::cout << std::endl;
 }
 
-void test_cpu_components() {
+void test_cpu_components()
+{
     // Clear operation counts
     bit::clear_all();
 
@@ -17,54 +20,56 @@ void test_cpu_components() {
     ZeRoLoop::RegisterFile regfile(4, 8);
 
     // Initialize test values in registers
-    regfile.register_list[1].data = {bit(0), bit(1), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0)}; 
-    regfile.register_list[2].data = {bit(1), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0)}; 
-    regfile.register_list[3].data = {bit(0), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0)}; 
+    regfile.register_list[1].data = {bit(0), bit(1), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0)};
+    regfile.register_list[2].data = {bit(1), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0)};
+    regfile.register_list[3].data = {bit(0), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0), bit(0)};
 
     // Test cases
-    struct TestCase {
+    struct TestCase
+    {
         std::string name;
-        vector<bit> alu_op;  // 4-bit operation code
-        vector<bit> rs1;     // Register select bits
-        vector<bit> rs2;     // Register select bits
+        vector<bit> alu_op; // 4-bit operation code
+        vector<bit> rs1;    // Register select bits
+        vector<bit> rs2;    // Register select bits
     };
 
     std::vector<TestCase> test_cases = {
         // ADD: 0000
-        {"ADD", {bit(0), bit(0), bit(0), bit(0)}, {bit(0), bit(1)}, {bit(1), bit(0)}},
-        
+        {"ADD", {bit(0), bit(0), bit(0), bit(0)}, {bit(1), bit(0)}, {bit(0), bit(1)}}, // 2 + 1 = 3
+
         // SUB: 0001
-        {"SUB", {bit(1), bit(0), bit(0), bit(0)}, {bit(0), bit(1)}, {bit(1), bit(0)}},
-        
+        {"SUB", {bit(0), bit(0), bit(0), bit(1)}, {bit(1), bit(0)}, {bit(0), bit(1)}}, // 2 - 1 = 1
+
         // SLL: 0010
-        {"SLL", {bit(0), bit(0), bit(1), bit(0)}, {bit(0), bit(1)}, {bit(1), bit(1)}},
-        
+        {"SLL", {bit(0), bit(1), bit(0), bit(0)}, {bit(1), bit(0)}, {bit(1), bit(0)}}, // 2 << 1 = 4
+
         // SLT: 0011
-        {"SLT", {bit(0), bit(0), bit(1), bit(1)}, {bit(0), bit(1)}, {bit(1), bit(0)}},
-        
+        {"SLT", {bit(1), bit(1), bit(0), bit(0)}, {bit(1), bit(0)}, {bit(0), bit(1)}}, // 2 < 1 = 0
+
         // SLTU: 0100
-        {"SLTU", {bit(0), bit(1), bit(0), bit(0)}, {bit(0), bit(1)}, {bit(1), bit(0)}},
-        
+        {"SLTU", {bit(0), bit(0), bit(1), bit(0)}, {bit(1), bit(0)}, {bit(0), bit(1)}}, // 2 <u 1 = 0
+
         // XOR: 0101
-        {"XOR", {bit(0), bit(1), bit(0), bit(1)}, {bit(0), bit(1)}, {bit(1), bit(0)}},
-        
+        {"XOR", {bit(1), bit(0), bit(1), bit(0)}, {bit(1), bit(0)}, {bit(0), bit(1)}}, // 2 ^ 1 = 3
+
         // SRL: 0110
-        {"SRL", {bit(0), bit(1), bit(1), bit(0)}, {bit(0), bit(1)}, {bit(1), bit(1)}},
-        
+        {"SRL", {bit(0), bit(1), bit(1), bit(0)}, {bit(1), bit(0)}, {bit(1), bit(0)}}, // 2 >> 1 = 1
+
         // SRA: 0111
-        {"SRA", {bit(0), bit(1), bit(1), bit(1)}, {bit(0), bit(1)}, {bit(1), bit(1)}},
-        
+        {"SRA", {bit(1), bit(1), bit(1), bit(0)}, {bit(1), bit(0)}, {bit(1), bit(0)}}, // 2 >>> 1 = 1
+
         // OR: 1000
-        {"OR", {bit(1), bit(0), bit(0), bit(0)}, {bit(0), bit(1)}, {bit(1), bit(0)}},
-        
+        {"OR", {bit(0), bit(0), bit(0), bit(1)}, {bit(1), bit(0)}, {bit(0), bit(1)}}, // 2 | 1 = 3
+
         // AND: 1001
-        {"AND", {bit(1), bit(0), bit(0), bit(1)}, {bit(0), bit(1)}, {bit(1), bit(0)}}
+        {"AND", {bit(1), bit(0), bit(0), bit(1)}, {bit(1), bit(0)}, {bit(0), bit(1)}}, // 2 & 1 = 0
     };
 
     bigint total_cost = 0;
 
     // Test each operation
-    for (const auto& test : test_cases) {
+    for (const auto &test : test_cases)
+    {
         std::cout << "\nTesting " << test.name << " operation\n";
         std::cout << "------------------------\n";
 
@@ -90,12 +95,12 @@ void test_cpu_components() {
         // Print operation counts
         std::cout << "Operation counts:\n";
         std::cout << "AND: " << bit::ops(bit_ops_and)
-                 << " OR: " << bit::ops(bit_ops_or)
-                 << " XOR: " << bit::ops(bit_ops_xor)
-                 << " NOT: " << bit::ops(bit_ops_not)
-                 << " NAND: " << bit::ops(bit_ops_nand)
-                 << " MUX: " << bit::ops(bit_ops_mux)
-                 << " Total: " << bit::ops() << "\n";
+                  << " OR: " << bit::ops(bit_ops_or)
+                  << " XOR: " << bit::ops(bit_ops_xor)
+                  << " NOT: " << bit::ops(bit_ops_not)
+                  << " NAND: " << bit::ops(bit_ops_nand)
+                  << " MUX: " << bit::ops(bit_ops_mux)
+                  << " Total: " << bit::ops() << "\n";
 
         total_cost += bit::ops();
         bit::clear_all();
@@ -104,7 +109,8 @@ void test_cpu_components() {
     std::cout << "\nTotal gate count across all operations: " << total_cost << std::endl;
 }
 
-int main() {
+int main()
+{
     test_cpu_components();
     return 0;
 }

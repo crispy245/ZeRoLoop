@@ -395,6 +395,17 @@ struct ZeRoLoop
                         bit is_or = alu_op[3] & ~alu_op[2] & ~alu_op[1] & ~alu_op[0];
                         bit is_and = alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];
 
+                        // std::cout << is_add.value() << std::endl;
+                        // std::cout << is_sub.value() << std::endl;
+                        // std::cout << is_sll.value() << std::endl;
+                        // std::cout << is_slt.value() << std::endl;
+                        // std::cout << is_sltu.value() << std::endl;
+                        // std::cout << is_xor.value() << std::endl;
+                        // std::cout << is_srl.value() << std::endl;
+                        // std::cout << is_sra.value() << std::endl;
+                        // std::cout << is_or.value() << std::endl;
+                        // std::cout << is_and.value() << std::endl;
+
                         // Compute all possible results
                         Register add_result(a.width());
                         Register sub_result(a.width());
@@ -403,43 +414,43 @@ struct ZeRoLoop
                         Register sra_result(a.width());
                         Register slt_result(a.width());
                         Register sltu_result(a.width());
+                        Register xor_result(a.width());
+                        Register or_result(a.width());
+                        Register and_result(a.width());
 
-                        // Perform operations and print each result
+                        // Perform operations 
                         add(add_result, a, b);
-                        add_result.print("ADD Result");
-
                         subtract(sub_result, a, b);
-                        sub_result.print("SUB Result");
-
                         sll_result = logical_shift_left(a, b);
-                        sll_result.print("SLL Result");
-
                         srl_result = logical_shift_right(a, b);
-                        srl_result.print("SRL Result");
-
                         sra_result = arithmetic_shift_right(a, b);
-                        sra_result.print("SRA Result");
-
                         slt_result = compare_slt(a, b);
-                        slt_result.print("SLT Result");
-
                         sltu_result = compare_sltu(a, b);
-                        sltu_result.print("SLTU Result");
-
-                        // Select the final result based on alu_op
-                        for (bigint i = 0; i < result.width(); i++)
+                        for (bigint i = 0; i < a.width(); i++)
                         {
-                                result.at(i) = is_add.mux(add_result.at(i),
-                                                          is_sub.mux(sub_result.at(i),
-                                                                     is_sll.mux(sll_result.at(i),
-                                                                                is_srl.mux(srl_result.at(i),
-                                                                                           is_sra.mux(sra_result.at(i),
-                                                                                                      is_slt.mux(slt_result.at(i),
-                                                                                                                 is_sltu.mux(sltu_result.at(i),
-                                                                                                                             result.at(i))))))));
+                                xor_result.at(i) = a.at(i) ^ b.at(i);
+                                or_result.at(i) = a.at(i) | b.at(i);
+                                and_result.at(i) = a.at(i) & b.at(i);
                         }
 
-                        result.print("Final ALU Result");
+                        for (bigint i = 0; i < result.width(); i++)
+                        {
+                                bit temp = result.at(i); 
+
+                                temp = is_sltu.mux(temp, sltu_result.at(i));
+                                temp = is_slt.mux(temp, slt_result.at(i));
+                                temp = is_sra.mux(temp, sra_result.at(i));
+                                temp = is_srl.mux(temp, srl_result.at(i));
+                                temp = is_sll.mux(temp, sll_result.at(i));
+                                temp = is_sub.mux(temp, sub_result.at(i));
+                                temp = is_add.mux(temp, add_result.at(i));
+                                temp = is_xor.mux(temp, (a.at(i) ^ b.at(i)));
+                                temp = is_or.mux(temp, (a.at(i) | b.at(i)));
+                                temp = is_and.mux(temp, (a.at(i) & b.at(i)));
+
+                                result.at(i) = temp;
+                        }
+
                         return result;
                 }
         };
