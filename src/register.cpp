@@ -50,3 +50,23 @@ void Register::push_back(const bit& b) {
 const std::vector<bit>& Register::get_data(){
     return data;
 }
+
+uint32_t Register::get_data_uint() const {
+    assert(data.size() <= 32 && "Register size must be 32 bits or less");
+    
+    uint32_t result = 0;
+    for (size_t i = 0; i < data.size(); i++) {
+        if (data[i].value()) {
+            result |= (1u << i);
+        }
+    }
+    return result;
+}
+
+void Register::update_data(bigint new_data){
+    Register new_data_reg(new_data,data.size());
+    for(bigint i = 0; i < data.size(); i++){
+        data.at(i) = new_data_reg.at(i);
+    } 
+
+}

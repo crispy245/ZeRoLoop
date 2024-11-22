@@ -1,3 +1,5 @@
+#pragma once
+
 #include "bit.h"
 #include <vector>
 #include <string>

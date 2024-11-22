@@ -133,17 +133,14 @@ Register ALU::compare_slt(Register a, Register b) {
 
 Register ALU::compare_sltu(Register a, Register b) {
     Register result(a.width());
-    bit carry = bit(1); // Start with borrow
-
-    // Propagate through all bits
-    for (bigint i = 0; i < a.width(); i++) {
-        bit t = (a.at(i) ^ b.at(i));
-        bit next_carry = (a.at(i) & b.at(i)) | (carry & t);
-        carry = next_carry;
-    }
-
-    // Set result[0] to ~carry, rest are initialized to 0
-    result.at(0) = ~carry;
+    Register sub_result(a.width());
+    
+    subtract(sub_result, a, b);
+    
+    // For unsigned comparison:
+    // If the highest bit is 1 after subtraction, there was a borrow,
+    // meaning a < b in unsigned comparison
+    result.at(0) = sub_result.at(a.width() - 1);
     return result;
 }
 

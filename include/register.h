@@ -21,4 +21,6 @@ public:
     const bit& at(size_t index) const;
     void push_back(const bit& b);
     const std::vector<bit>& get_data();
+    void update_data(bigint new_data);
+    uint32_t get_data_uint() const;  
 };
