@@ -435,7 +435,7 @@ void test_instruction_memory()
         uint32_t hex;
         std::string description;
         std::string operation;
-        int32_t expected_result; 
+        int32_t expected_result;
     };
 
     std::vector<Instruction> program = {
@@ -445,9 +445,9 @@ void test_instruction_memory()
         {0x002080B3, "add x1, x1, x2", "3 + 5", 8}, // x1 = x1 + x2
         {0x40208133, "sub x2, x1, x2", "8 - 5", 3}, // x2 = x1 - x2
 
-        {0x00209393, "slli x7, x1, 2", "8 << 2", 32},  // x7 = x1 << 2
-        {0x0020d413, "srli x8, x1, 2", "8 >> 2", 2},   // x8 = x1 >> 2
-        {0x4020d493, "srai x9, x1, 2", "8 >> 2", 2}, // x9 = x1 >> 2 (arithmetic)
+        {0x00209393, "slli x7, x1, 2", "8 << 2", 32}, // x7 = x1 << 2
+        {0x0020d413, "srli x8, x1, 2", "8 >> 2", 2},  // x8 = x1 >> 2
+        {0x4020d493, "srai x9, x1, 2", "8 >> 2", 2},  // x9 = x1 >> 2 (arithmetic)
     };
 
     // Helper functions
@@ -517,10 +517,11 @@ void test_instruction_memory()
         std::cout << "  rd: " << decoded.rd << std::endl;
 
         std::cout << " alu_op :";
-        for(auto op_bit : decoded.alu_op){
-            std::cout<<op_bit.value();
+        for (auto op_bit : decoded.alu_op)
+        {
+            std::cout << op_bit.value();
         }
-        std::cout<<std::endl;
+        std::cout << std::endl;
 
         if (decoded.is_immediate)
         {
@@ -580,30 +581,40 @@ void test_instruction_memory()
     delete currentCPU;
 }
 
-
-
-void full_system_deployed()
+void test_full_system()
 {
     bit::clear_all();
+    std::cout << "\n=== Testing RISC-V CPU Implementation ===\n";
 
-    RAM instruction_memory(1024, 32); // Instruction memory
-    RAM data_memory(1024, 32);        // Data memory
+    // Initialize memories
+    RAM instruction_memory(1024, 32);
+    RAM data_memory(1024, 32);
 
-    // Program: Series of instructions to test
+    // Program: Test sequence of instructions
     struct Instruction
     {
         uint32_t hex;
         std::string description;
-        std::string operation;
-        bool branch_taken;
-        uint32_t next_pc;
-        int32_t expected_result; 
     };
 
-    std::vector<Instruction> program{
-        {0x00300093, "addi x1, x0, 3", "0 + 3", 0, 4, 3}, // x1 = 3, NB, 4
-        {0x00308113, "addi x2, x1, 3", "3 + 3", 0, 8, 6}, // x2 = 6, NB, 8
-    };
+std::vector<Instruction> program = {
+    {0x00000e13, "addi x28, x0, 0"},     // x28 = 0 (first Fibonacci number)
+    {0x00100e93, "addi x29, x0, 1"},     // x29 = 1 (second Fibonacci number)
+    {0x00100093, "addi x1, x0, 1"},      // Constant 1
+    {0x01de01b3, "add x3, x29, x29"},     // Next Term
+    {0x00900213, "addi x4, x0, 9"},      // Iterations 
+    
+    //loop:
+    {0x000e8e33, "add x28, x29, x0"},     // t1 = t2
+    {0x00018eb3, "add x29, x3, x0 "},     // t2 = Next Term
+    {0x01de01b3, "add x3, x28, x29"},    //  Next Term = t1 + t2
+    {0x40120233, "sub x4, x4, x1"},     // Iterations - 1
+    {0xfe0218e3, "bnez x4, loop"},     // 
+
+    {0x00a00513, "addi x10, x0, 10"},     // Write 10 to R[10]
+
+};
+
 
     // Helper functions
     auto addr_to_bits = [](uint32_t addr, size_t bits)
@@ -626,28 +637,82 @@ void full_system_deployed()
         return result;
     };
 
-    
-        // Write program to instruction memory
+    // Load program into instruction memory
     for (size_t i = 0; i < program.size(); i++)
     {
         vector<bit> addr = addr_to_bits(i * 4, instruction_memory.get_addr_bits());
         vector<bit> instr = val_to_bits(program[i].hex, 32);
         instruction_memory.write(addr, instr);
 
-        std::cout << "Stored instruction at 0x" << std::hex << (i * 4)
+        std::cout << "Loaded instruction at 0x" << std::hex << (i * 4)
                   << ": 0x" << program[i].hex << std::dec
                   << " (" << program[i].description << ")\n";
     }
 
-    
+    std::cout << "\nStarting program execution:\n";
+    std::cout << "===========================\n";
 
+    // Initialize first CPU state
+    ZeroLoop *currentCPU = new ZeroLoop();
+    currentCPU->connect_memories(&instruction_memory, &data_memory);
 
+    // Execute program cycle by cycle
+    while (true)
+    { // We'll break when PC reaches end of program
+        uint32_t current_pc = currentCPU->get_pc();
+        if (current_pc >= program.size() * 4)
+            break;
+
+        // Create next CPU state
+        ZeroLoop *nextCPU = new ZeroLoop();
+        nextCPU->connect_memories(&instruction_memory, &data_memory);
+        nextCPU->copy_state_from(*currentCPU);
+
+        // Fetch instruction using current PC
+        vector<bit> pc_bits = addr_to_bits(current_pc, instruction_memory.get_addr_bits());
+        vector<bit> instr_bits = instruction_memory.read(pc_bits);
+
+        // Convert instruction bits to uint32_t
+        uint32_t instruction = 0;
+        for (size_t j = 0; j < 32; j++)
+        {
+            if (instr_bits[j].value())
+            {
+                instruction |= (1u << j);
+            }
+        }
+
+        std::cout << "\nExecuting at PC = 0x" << current_pc
+                  << ", Instruction = 0x" << instruction << std::dec << std::endl;
+
+        // Execute instruction on next state
+        nextCPU->execute_instruction(instruction);
+
+        // Print register state
+        std::cout << "\nRegister file after instruction:\n";
+        nextCPU->print_registers();
+
+        // Print operation counts
+        std::cout << "\nOperation counts:\n";
+        for (auto op : bit_ops_selectors)
+        {
+            std::cout << bit::opsname(op) << ": " << bit::ops(op) << "\n";
+        }
+        std::cout << "Total operations: " << bit::ops() << "\n";
+        std::cout << "===========================\n";
+
+        // Clean up current state and move to next
+        delete currentCPU;
+        currentCPU = nextCPU;
+    }
+
+    // Clean up final state
+    delete currentCPU;
 }
-
-
 
 int main()
 {
-    test_instruction_memory();
+    test_full_system();
+    std::cout << "\nTotal gate count : " << bit::ops() << "\n";
     return 0;
 }

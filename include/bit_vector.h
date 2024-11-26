@@ -84,6 +84,8 @@ static inline vector<bit> bit_vector_from_integer(bigint n)
 	return ret;
 }
 
+
+
 static inline vector<bit> bit_vector_from_integer(bigint n, bigint len, bool flip = 0)
 {
 	assert(nbits(n) <= len);

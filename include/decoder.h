@@ -132,20 +132,76 @@ private:
 public:
     struct DecodedInstruction
     {
+        // Register fields
         size_t rs1 = 0;
         size_t rs2 = 0;
         size_t rd = 0;
-        std::vector<bit> alu_op;
+
+        // Control signals as individual bits
+        bit i_alu;
+        bit r_type;
+        bit load;
+        bit store;
+        bit branch;
+        bit jal;
+        bit jalr;
+
+        // Instruction type fields
         bool is_alu_op = false;
         bool is_load = false;
         bool is_store = false;
         bool is_immediate = false;
-        int32_t imm = 0;
-        uint32_t funct3 = 0;
         bool is_branch = false;
         bool is_jump = false;
         bool is_jalr = false;
 
+        // Function bits
+        vector<bit> f3_bits; // 3 bits
+        vector<bit> f7_bits; // 7 bits
+        uint32_t funct3;     // Keep uint32_t version for convenience
+
+        // ALU operation
+        std::vector<bit> alu_op;
+
+        // Branch conditions
+        bit is_beq;
+        bit is_bne;
+        bit is_blt;
+        bit is_bge;
+        bit is_bltu;
+        bit is_bgeu;
+
+        // ALU operation flags
+        bit is_add;
+        bit is_sub;
+        bit is_sll;
+        bit is_slt;
+        bit is_sltu;
+        bit is_xor;
+        bit is_srl;
+        bit is_sra;
+        bit is_or;
+        bit is_and;
+
+        // I-type ALU flags
+        bit is_addi;
+        bit is_slti;
+        bit is_sltiu;
+        bit is_xori;
+        bit is_ori;
+        bit is_andi;
+        bit is_slli;
+        bit is_srli;
+        bit is_srai;
+
+        // Immediate value and type flags
+        int32_t imm;
+        bit is_i_imm;
+        bit is_s_imm;
+        bit is_b_imm;
+        bit is_j_imm;
+
+        // Comparison operator
         bool operator==(const DecodedInstruction &other) const
         {
             return rs1 == other.rs1 &&
@@ -171,84 +227,80 @@ public:
             return true;
         }
     };
+
     DecodedInstruction decode(uint32_t instruction)
     {
         DecodedInstruction decoded;
+
+        // Initialize bit vectors
         decoded.alu_op.resize(4, bit(0));
+        decoded.f3_bits.resize(3, bit(0));
+        decoded.f7_bits.resize(7, bit(0));
 
         // Extract fields using existing helpers
         uint32_t opcode = get_opcode(instruction);
         uint32_t funct3 = get_funct3(instruction);
         uint32_t funct7 = get_funct7(instruction);
 
-        // Convert to bit vectors
-        vector<bit> op_bits;
-        vector<bit> f3_bits;
-        vector<bit> f7_bits;
-
-        for (int i = 0; i < 7; i++)
-            op_bits.push_back(bit((opcode >> i) & 1));
+        // Store funct3 and funct7 bits
         for (int i = 0; i < 3; i++)
-            f3_bits.push_back(bit((funct3 >> i) & 1));
+        {
+            decoded.f3_bits[i] = bit((funct3 >> i) & 1);
+        }
         for (int i = 0; i < 7; i++)
-            f7_bits.push_back(bit((funct7 >> i) & 1));
+        {
+            decoded.f7_bits[i] = bit((funct7 >> i) & 1);
+        }
+        decoded.funct3 = funct3; // Keep uint32_t version
 
-        // std::cout << "Opcode binary: ";
-        // for (int i = 6; i >= 0; i--)
-        // {
-        //     std::cout << ((opcode >> i) & 1);
-        // }
-        // std::cout << std::endl;
+        // Convert opcode to bit vector
+        vector<bit> op_bits;
+        for (int i = 0; i < 7; i++)
+        {
+            op_bits.push_back(bit((opcode >> i) & 1));
+        }
 
-        // std::cout << "op_bits vector: ";
-        // for (int i = 6; i >= 0; i--)
-        // {
-        //     std::cout << op_bits[i].value();
-        // }
-        // std::cout << std::endl;
+        // Instruction type detection
+        decoded.i_alu = ~op_bits[6] & ~op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
+        decoded.r_type = ~op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
+        decoded.load = ~op_bits[6] & ~op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
+        decoded.store = ~op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
+        decoded.branch = op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
+        decoded.jal = op_bits[6] & op_bits[5] & ~op_bits[4] & op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
+        decoded.jalr = op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
 
-        // Updated instruction type detection (checking all bits)
-        bit i_alu = ~op_bits[6] & ~op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0]; // 0010011
-        bit r_type = ~op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0]; // 0110011
-        bit load = ~op_bits[6] & ~op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0]; // 0000011
-        bit store = ~op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0]; // 0100011
-        bit branch = op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0]; // 1100011
-        bit jal = op_bits[6] & op_bits[5] & ~op_bits[4] & op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];      // 1101111
-        bit jalr = op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];   // 1100111
-
-        // R-type operations (following ALU decode pattern)
-        bit is_add = r_type & ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0] & ~f7_bits[5];
-        bit is_sub = r_type & ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0] & f7_bits[5];
-        bit is_sll = r_type & ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];
-        bit is_slt = r_type & ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];
-        bit is_sltu = r_type & ~f3_bits[2] & f3_bits[1] & f3_bits[0];
-        bit is_xor = r_type & f3_bits[2] & ~f3_bits[1] & ~f3_bits[0];
-        bit is_srl = r_type & f3_bits[2] & ~f3_bits[1] & f3_bits[0] & ~f7_bits[5];
-        bit is_sra = r_type & f3_bits[2] & ~f3_bits[1] & f3_bits[0] & f7_bits[5];
-        bit is_or = r_type & f3_bits[2] & f3_bits[1] & ~f3_bits[0];
-        bit is_and = r_type & f3_bits[2] & f3_bits[1] & f3_bits[0];
+        // R-type operations
+        decoded.is_add = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0] & ~decoded.f7_bits[5];
+        decoded.is_sub = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0] & decoded.f7_bits[5];
+        decoded.is_sll = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
+        decoded.is_slt = decoded.r_type & ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_sltu = decoded.r_type & ~decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
+        decoded.is_xor = decoded.r_type & decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_srl = decoded.r_type & decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0] & ~decoded.f7_bits[5];
+        decoded.is_sra = decoded.r_type & decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0] & decoded.f7_bits[5];
+        decoded.is_or = decoded.r_type & decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_and = decoded.r_type & decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
 
         // I-type ALU operations
-        bit is_addi = i_alu & ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0];
-        bit is_slti = i_alu & ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];
-        bit is_sltiu = i_alu & ~f3_bits[2] & f3_bits[1] & f3_bits[0];
-        bit is_xori = i_alu & f3_bits[2] & ~f3_bits[1] & ~f3_bits[0];
-        bit is_ori = i_alu & f3_bits[2] & f3_bits[1] & ~f3_bits[0];
-        bit is_andi = i_alu & f3_bits[2] & f3_bits[1] & f3_bits[0];
-        bit is_slli = i_alu & ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];
-        bit is_srli = i_alu & f3_bits[2] & ~f3_bits[1] & f3_bits[0] & ~f7_bits[5];
-        bit is_srai = i_alu & f3_bits[2] & ~f3_bits[1] & f3_bits[0] & f7_bits[5];
+        decoded.is_addi = decoded.i_alu & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_slti = decoded.i_alu & ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_sltiu = decoded.i_alu & ~decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
+        decoded.is_xori = decoded.i_alu & decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_ori = decoded.i_alu & decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_andi = decoded.i_alu & decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
+        decoded.is_slli = decoded.i_alu & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
+        decoded.is_srli = decoded.i_alu & decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0] & ~decoded.f7_bits[5];
+        decoded.is_srai = decoded.i_alu & decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0] & decoded.f7_bits[5];
 
         // Branch operations
-        bit is_beq = branch & ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0];
-        bit is_bne = branch & ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];
-        bit is_blt = branch & f3_bits[2] & ~f3_bits[1] & ~f3_bits[0];
-        bit is_bge = branch & f3_bits[2] & ~f3_bits[1] & f3_bits[0];
-        bit is_bltu = branch & f3_bits[2] & f3_bits[1] & ~f3_bits[0];
-        bit is_bgeu = branch & f3_bits[2] & f3_bits[1] & f3_bits[0];
+        decoded.is_beq = decoded.branch & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_bne = decoded.branch & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
+        decoded.is_blt = decoded.branch & decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_bge = decoded.branch & decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
+        decoded.is_bltu = decoded.branch & decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        decoded.is_bgeu = decoded.branch & decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
 
-        vector<bit> alu_op = {bit(0), bit(0), bit(0), bit(0)}; // Default ADD
-
+        // ALU operation vector setup
         vector<bit> sub_op = {bit(1), bit(0), bit(0), bit(0)};
         vector<bit> sll_op = {bit(0), bit(1), bit(0), bit(0)};
         vector<bit> slt_op = {bit(0), bit(1), bit(1), bit(0)};
@@ -259,64 +311,51 @@ public:
         vector<bit> or_op = {bit(0), bit(0), bit(0), bit(1)};
         vector<bit> and_op = {bit(1), bit(0), bit(0), bit(1)};
 
-        // Mux operations
-        bit_vector_mux(alu_op, sub_op, is_sub | is_beq | is_bne);                // SUB and equality
-        bit_vector_mux(alu_op, sll_op, is_sll | is_slli);                        // Shifts left
-        bit_vector_mux(alu_op, slt_op, is_slt | is_slti | is_blt | is_bge);      // Signed comparisons
-        bit_vector_mux(alu_op, sltu_op, is_sltu | is_sltiu | is_bltu | is_bgeu); // Unsigned
-        bit_vector_mux(alu_op, xor_op, is_xor | is_xori);                        // XOR
-        bit_vector_mux(alu_op, srl_op, is_srl | is_srli);                        // SRL
-        bit_vector_mux(alu_op, sra_op, is_sra | is_srai);                        // SRA
-        bit_vector_mux(alu_op, or_op, is_or | is_ori);                           // OR
-        bit_vector_mux(alu_op, and_op, is_and | is_andi);                        // AND
+        // Mux ALU operations
+        bit_vector_mux(decoded.alu_op, sub_op, decoded.is_sub | decoded.is_beq | decoded.is_bne);
+        bit_vector_mux(decoded.alu_op, sll_op, decoded.is_sll | decoded.is_slli);
+        bit_vector_mux(decoded.alu_op, slt_op, decoded.is_slt | decoded.is_slti | decoded.is_blt | decoded.is_bge);
+        bit_vector_mux(decoded.alu_op, sltu_op, decoded.is_sltu | decoded.is_sltiu | decoded.is_bltu | decoded.is_bgeu);
+        bit_vector_mux(decoded.alu_op, xor_op, decoded.is_xor | decoded.is_xori);
+        bit_vector_mux(decoded.alu_op, srl_op, decoded.is_srl | decoded.is_srli);
+        bit_vector_mux(decoded.alu_op, sra_op, decoded.is_sra | decoded.is_srai);
+        bit_vector_mux(decoded.alu_op, or_op, decoded.is_or | decoded.is_ori);
+        bit_vector_mux(decoded.alu_op, and_op, decoded.is_and | decoded.is_andi);
 
-        decoded.alu_op = alu_op;
+        // Set boolean flags using muxes
+        decoded.is_alu_op = decoded.r_type.mux(bit(0), bit(1)).value();
+        decoded.is_alu_op = decoded.i_alu.mux(bit(decoded.is_alu_op), bit(1)).value();
+        decoded.is_alu_op = decoded.load.mux(bit(decoded.is_alu_op), bit(1)).value();
+        decoded.is_alu_op = decoded.store.mux(bit(decoded.is_alu_op), bit(1)).value();
+        decoded.is_alu_op = decoded.branch.mux(bit(decoded.is_alu_op), bit(1)).value();
 
-        // Control signals using muxes
-        decoded.is_alu_op = 0;
-        decoded.is_alu_op = r_type.mux(decoded.is_alu_op, bit(1)).value();
-        decoded.is_alu_op = i_alu.mux(decoded.is_alu_op, bit(1)).value();
-        decoded.is_alu_op = load.mux(decoded.is_alu_op, bit(1)).value();
-        decoded.is_alu_op = store.mux(decoded.is_alu_op, bit(1)).value();
-        decoded.is_alu_op = branch.mux(decoded.is_alu_op, bit(1)).value();
+        decoded.is_load = decoded.load.mux(bit(0), bit(1)).value();
+        decoded.is_store = decoded.store.mux(bit(0), bit(1)).value();
+        decoded.is_branch = decoded.branch.mux(bit(0), bit(1)).value();
+        decoded.is_jump = decoded.jal.mux(bit(0), bit(1)).value();
+        decoded.is_jump = decoded.jalr.mux(bit(decoded.is_jump), bit(1)).value();
+        decoded.is_jalr = decoded.jalr.mux(bit(0), bit(1)).value();
 
-        decoded.is_load = load.mux(bit(0), bit(1)).value();
-        decoded.is_store = store.mux(bit(0), bit(1)).value();
-        decoded.is_branch = branch.mux(bit(0), bit(1)).value();
-        decoded.is_jump = 0;
-        decoded.is_jump = jal.mux(decoded.is_jump, bit(1)).value();
-        decoded.is_jump = jalr.mux(decoded.is_jump, bit(1)).value();
-        decoded.is_jalr = jalr.mux(bit(0), bit(1)).value();
-
-        decoded.is_immediate = 0;
+        // Immediate handling
         bit is_immediate = bit(0);
-        is_immediate = is_immediate | i_alu;
-        is_immediate = is_immediate | load;
-        is_immediate = is_immediate | store;
-        is_immediate = is_immediate | branch;
-        is_immediate = is_immediate | jal;
-        is_immediate = is_immediate | jalr;
+        is_immediate = is_immediate | decoded.i_alu;
+        is_immediate = is_immediate | decoded.load;
+        is_immediate = is_immediate | decoded.store;
+        is_immediate = is_immediate | decoded.branch;
+        is_immediate = is_immediate | decoded.jal;
+        is_immediate = is_immediate | decoded.jalr;
         decoded.is_immediate = is_immediate.value();
 
-        // For debugging
-        std::cout << " i_alu: " << i_alu.value() << std::endl;
-        std::cout << " load: " << load.value() << std::endl;
-        std::cout << " store: " << store.value() << std::endl;
-        std::cout << " branch: " << branch.value() << std::endl;
-        std::cout << " jal: " << jal.value() << std::endl;
-        std::cout << " jalr: " << jalr.value() << std::endl;
-        std::cout << " Final is_immediate: " << decoded.is_immediate << std::endl;
+        // Set immediate type flags
+        decoded.is_i_imm = decoded.i_alu | decoded.load | decoded.jalr;
+        decoded.is_s_imm = decoded.store;
+        decoded.is_b_imm = decoded.branch;
+        decoded.is_j_imm = decoded.jal;
 
         // Register fields
         decoded.rs1 = get_rs1(instruction);
         decoded.rs2 = get_rs2(instruction);
         decoded.rd = get_rd(instruction);
-
-        // Immediate value muxing using existing helper functions
-        bit is_i_imm = i_alu | load | jalr;
-        bit is_s_imm = store;
-        bit is_b_imm = branch;
-        bit is_j_imm = jal;
 
         // Create a 32-bit vector to store our immediate
         std::vector<bit> imm_bits(32, bit(0));
@@ -333,10 +372,10 @@ public:
             bit j_imm_bit = bit((get_imm_j(instruction) >> i) & 1);
 
             // Mux each bit individually
-            curr_bit = is_i_imm.mux(curr_bit, i_imm_bit);
-            curr_bit = is_s_imm.mux(curr_bit, s_imm_bit);
-            curr_bit = is_b_imm.mux(curr_bit, b_imm_bit);
-            curr_bit = is_j_imm.mux(curr_bit, j_imm_bit);
+            curr_bit = decoded.is_i_imm.mux(curr_bit, i_imm_bit);
+            curr_bit = decoded.is_s_imm.mux(curr_bit, s_imm_bit);
+            curr_bit = decoded.is_b_imm.mux(curr_bit, b_imm_bit);
+            curr_bit = decoded.is_j_imm.mux(curr_bit, j_imm_bit);
 
             imm_bits[i] = curr_bit;
         }
@@ -348,8 +387,46 @@ public:
             decoded.imm |= (imm_bits[i].value() ? 1 : 0) << i;
         }
 
-        // Store funct3 for load/store width
-        decoded.funct3 = funct3;
+        // Debug output
+        std::cout << "Instruction type bits:" << std::endl;
+        std::cout << " i_alu: " << decoded.i_alu.value() << std::endl;
+        std::cout << " load: " << decoded.load.value() << std::endl;
+        std::cout << " store: " << decoded.store.value() << std::endl;
+        std::cout << " branch: " << decoded.branch.value() << std::endl;
+        std::cout << " jal: " << decoded.jal.value() << std::endl;
+        std::cout << " jalr: " << decoded.jalr.value() << std::endl;
+
+        std::cout << "Branch condition bits:" << std::endl;
+        std::cout << " beq: " << decoded.is_beq.value() << std::endl;
+        std::cout << " bne: " << decoded.is_bne.value() << std::endl;
+        std::cout << " blt: " << decoded.is_blt.value() << std::endl;
+        std::cout << " bge: " << decoded.is_bge.value() << std::endl;
+        std::cout << " bltu: " << decoded.is_bltu.value() << std::endl;
+        std::cout << " bgeu: " << decoded.is_bgeu.value() << std::endl;
+
+        std::cout << "Function bits:" << std::endl;
+        std::cout << " funct3: ";
+        for (const auto &b : decoded.f3_bits)
+        {
+            std::cout << b.value();
+        }
+        std::cout << std::endl;
+
+        std::cout << "ALU operation bits:" << std::endl;
+        std::cout << " alu_op: ";
+        for (const auto &b : decoded.alu_op)
+        {
+            std::cout << b.value();
+        }
+        std::cout << std::endl;
+
+        std::cout << "Immediate handling:" << std::endl;
+        std::cout << " is_immediate: " << decoded.is_immediate << std::endl;
+        std::cout << " imm value: " << decoded.imm << std::endl;
+        std::cout << " i_imm: " << decoded.is_i_imm.value() << std::endl;
+        std::cout << " s_imm: " << decoded.is_s_imm.value() << std::endl;
+        std::cout << " b_imm: " << decoded.is_b_imm.value() << std::endl;
+        std::cout << " j_imm: " << decoded.is_j_imm.value() << std::endl;
 
         return decoded;
     }

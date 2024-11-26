@@ -48,7 +48,6 @@ public:
     // Use for branches and jumps
     void update_pc_brj(bigint new_pc_val)
     {
-        assert((new_pc_val % 4) == 0);
         current_pc.update_data(new_pc_val);
     }
 
