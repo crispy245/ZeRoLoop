@@ -63,6 +63,9 @@ public:
         // ALU operation
         std::vector<bit> alu_op;
 
+        // CSR 
+        uint32_t csr_field;
+
         // Branch conditions
         bit is_beq;
         bit is_bne;
@@ -100,6 +103,17 @@ public:
         bit is_s_imm;
         bit is_b_imm;
         bit is_j_imm;
+
+        // CSR values and type flags
+        bit is_csr_op;
+        bit is_csrrw;
+        bit is_csrrs;
+        bit is_csrrc;
+        bit is_csrrwi;
+        bit is_csrrsi;
+        bit is_csrrci;
+
+
 
         bool operator==(const DecodedInstruction& other) const;
         bool compare_alu_op(const std::vector<bit>& a, const std::vector<bit>& b) const;

@@ -29,7 +29,7 @@ SRCS = main.c
 OBJS = $(SRCS:.c=.o)
 
 # Compiler flags
-CFLAGS = -march=rv32i \
+CFLAGS = -march=rv32izicsr \
          -mabi=ilp32 \
          -nostdlib \
          -ffreestanding \
