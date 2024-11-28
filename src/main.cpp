@@ -104,7 +104,6 @@ void test_full_system()
         return result;
     };
 
-
     load_instructions(&instruction_memory);
 
     std::cout << "\nStarting program execution:\n";
@@ -116,7 +115,11 @@ void test_full_system()
 
     // Execute program cycle by cycle
     while (true)
-    { // We'll break when PC reaches end of program
+    { 
+        
+        if(currentCPU->get_csr_21() == 1){
+            break;
+        }
         uint32_t current_pc = currentCPU->get_pc();
 
         // Create next CPU state

@@ -82,11 +82,13 @@ void ZeroLoop::add(Register &ret, Register a, Register b)
     }
 }
 
-Register ZeroLoop::two_complement(Register b) {
+Register ZeroLoop::two_complement(Register b)
+{
     Register complement(b.width());
 
     // Invert all bits (one's complement)
-    for (size_t i = 0; i < b.width(); ++i) {
+    for (size_t i = 0; i < b.width(); ++i)
+    {
         complement.at(i) = ~b.at(i);
     }
 
@@ -96,7 +98,8 @@ Register ZeroLoop::two_complement(Register b) {
     return complement;
 }
 
-Register ZeroLoop::subtract(Register& result, Register a, Register b) {
+Register ZeroLoop::subtract(Register &result, Register a, Register b)
+{
     Register b_complement = two_complement(b);
     bit carry = bit(0);
     add(result, a, b_complement);
@@ -134,6 +137,19 @@ void ZeroLoop::conditional_register_write(const bit &should_write, size_t rd, co
         write_register(rd, data);
     }
 }
+
+void ZeroLoop::conditional_csr_write(const bit &should_write, size_t csr_pos, const Register &data)
+{
+    if (should_write.value() && csr_pos != 0)
+    {
+        csrs[csr_pos] = data;
+    }
+}
+
+const uint32_t ZeroLoop::get_csr_21(){
+    return csrs[21].get_data_uint();
+}
+
 
 void ZeroLoop::execute_instruction(uint32_t instruction)
 {
@@ -250,6 +266,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit should_write_alu = ~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op);
     bit should_write_load = bit(decoded.is_load);
     bit should_write_jump = bit(decoded.is_jump);
+    bit should_write_csr = bit(decoded.is_csrrw);
 
     // Write ALU result
     conditional_register_write(should_write_alu, decoded.rd, alu_result);
@@ -261,6 +278,11 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     Register return_addr(next_pc.get_data_uint(), 32);
     conditional_register_write(should_write_jump, decoded.rd, return_addr);
 
+    // Write CSR result 
+    conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);
+    conditional_csr_write(should_write_csr,decoded.csr_field,rs1);
+    std::cout<<"Our csr field is: "<<decoded.csr_field<<std::endl;
+
     // Debug output
     std::cout << "Debug Info:" << std::endl;
     std::cout << "rs1 value: " << register_to_int_internal(rs1) << std::endl;
@@ -270,6 +292,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     std::cout << "should_branch: " << should_branch.value() << std::endl;
     std::cout << "Current PC: 0x" << std::hex << pc_val.get_data_uint() << std::dec << std::endl;
     std::cout << "Next PC: 0x" << std::hex << final_pc.get_data_uint() << std::dec << std::endl;
+    csrs[21].print("CSR 21 :");
 }
 
 RegisterFile &ZeroLoop::get_register_file()
