@@ -1,4 +1,5 @@
 #include "zero_loop.h"
+#include <iostream>
 
 Register ZeroLoop::read_register(size_t pos)
 {
@@ -122,11 +123,26 @@ void ZeroLoop::conditional_pc_increment(const bit &should_increment, const Regis
     }
 }
 
-void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data)
+void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits)
 {
+    bit is_sb = ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0];
+    bit is_sh = ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];
+    bit is_sw = ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];
+
+    // This is honestly an ugly hack but we can't just write to partial parts
+    // of the ram (at least that am aware of), so load the adress we want,
+    // write the parts we modify and send it back
     if (should_write.value() && data_memory != nullptr)
     {
-        data_memory->write(addr, data);
+        std::vector<bit> original_data = data_memory->read(addr);
+        std::vector<bit> store_data(32);
+        for (size_t i = 0; i < 32; i++)
+        {
+            bit keep_storing = ((is_sb.value() & (i < 8)) || (is_sh.value() & (i < 16)) || (is_sw.value() & (i < 32)));
+            store_data.at(i) = keep_storing.mux(original_data.at(i), data.at(i));
+        }
+
+        data_memory->write(addr, store_data);
     }
 }
 
@@ -146,10 +162,17 @@ void ZeroLoop::conditional_csr_write(const bit &should_write, size_t csr_pos, co
     }
 }
 
-const uint32_t ZeroLoop::get_csr_21(){
+const uint32_t ZeroLoop::get_csr_21()
+{
     return csrs[21].get_data_uint();
 }
 
+void ZeroLoop::handle_memory_write(uint32_t addr, uint32_t value) {
+    std::cout<<"PRINTING"<<std::endl;
+    if (addr >= 0xFFFFFF00) {
+        std::cout << (char)(value & 0xFF);
+    }
+}
 
 void ZeroLoop::execute_instruction(uint32_t instruction)
 {
@@ -173,9 +196,8 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     Register alu_result = execute_alu(rs1, alu_input_2, decoded.alu_op);
 
     // 5. Branch Comparison (separate from main ALU)
-    Register zero(0, 32);
     Register branch_comparison(32);
-    subtract(branch_comparison, rs1, zero); // Always compare against zero for branches
+    subtract(branch_comparison, rs1, rs2);
 
     // 6. Branch Condition Evaluation
     int32_t comparison = register_to_int_internal(branch_comparison);
@@ -203,6 +225,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit bgeu_taken = decoded.is_bgeu & ~is_negative;
 
     bit should_branch = (beq_taken | bne_taken | blt_taken | bge_taken | bltu_taken | bgeu_taken) & bit(decoded.is_branch);
+    std::cout << "beq taken = " << decoded.is_beq.value() << std::endl;
 
     // 8. Memory Address Calculation
     Register mem_base(32);
@@ -210,19 +233,51 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     add(mem_addr_calc, rs1, offset);
     std::vector<bit> mem_addr = addr_to_bits(mem_addr_calc.get_data_uint() >> 2, data_memory->get_addr_bits());
 
-    // 9. Memory Operations
     Register load_result(32);
     if (data_memory != nullptr && decoded.is_load)
     {
+        // Decode load type from f3 bits
+        bit is_lb = ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        bit is_lh = ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
+        bit is_lw = ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        bit is_lbu = ~decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
+        bit is_lhu = decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+
         std::vector<bit> loaded_data = data_memory->read(mem_addr);
+
+        bit sign_bit_b = loaded_data[7];  // Sign bit for byte
+        bit sign_bit_h = loaded_data[15]; // Sign bit for halfword
+
         for (size_t i = 0; i < 32; i++)
         {
-            load_result.at(i) = loaded_data[i];
+            bit should_extend_b = (i >= 8) & is_lb.value();
+            bit should_extend_h = (i >= 16) & is_lh.value();
+
+            // Determine if this bit position should be loaded
+            bit keep_loading = ((is_lb | is_lbu) & (i < 8)) |  // Load byte
+                               ((is_lh | is_lhu) & (i < 16)) | // Load halfword
+                               (is_lw & (i < 32));             // Load word
+
+            // For sign extension
+            bit extended_value = (should_extend_b & sign_bit_b) |
+                                 (should_extend_h & sign_bit_h);
+
+            // Select between original data and sign-extended value
+            load_result.at(i) = keep_loading.mux(
+                extended_value,
+                loaded_data[i]);
         }
     }
 
     bit should_store(decoded.is_store);
-    conditional_memory_write(should_store, mem_addr, rs2.get_data());
+    conditional_memory_write(should_store, mem_addr, rs2.get_data(), decoded.f3_bits);
+
+    // Printing
+    if (should_store.value())
+    {
+        std::cout << "mem_addr = " << (mem_addr_calc.get_data_uint() >> 2) << std::endl;
+        handle_memory_write(mem_addr_calc.get_data_uint(), rs2.get_data_uint());
+    }
 
     // 10. Jump Handling
     Register jalr_target(32);
@@ -278,10 +333,10 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     Register return_addr(next_pc.get_data_uint(), 32);
     conditional_register_write(should_write_jump, decoded.rd, return_addr);
 
-    // Write CSR result 
+    // Write CSR result
     conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);
-    conditional_csr_write(should_write_csr,decoded.csr_field,rs1);
-    std::cout<<"Our csr field is: "<<decoded.csr_field<<std::endl;
+    conditional_csr_write(should_write_csr, decoded.csr_field, rs1);
+    std::cout << "Our csr field is: " << decoded.csr_field << std::endl;
 
     // Debug output
     std::cout << "Debug Info:" << std::endl;

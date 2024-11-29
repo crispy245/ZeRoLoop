@@ -98,7 +98,7 @@ public:
         bit is_srai;
 
         // Immediate value and type flags
-        int32_t imm;
+        uint32_t imm;
         bit is_i_imm;
         bit is_s_imm;
         bit is_b_imm;

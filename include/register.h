@@ -22,7 +22,7 @@ public:
     explicit Register(size_t width = 32);
     Register(std::vector<bit>& bits);
     Register(bigint value, size_t width);
-    Register(int32_t value, size_t width);
+    Register(uint32_t value, size_t width);
 
 
     bit get_bit(size_t index) const;

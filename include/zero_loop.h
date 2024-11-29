@@ -71,7 +71,7 @@ public:
     // Conditional write to units
     void conditional_pc_jump(const bit &should_jump, const Register &target);
     void conditional_pc_increment(const bit &should_increment, const Register &offset);
-    void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data);
+    void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data,std::vector<bit> f3_bits);
     void conditional_register_write(const bit &should_write, size_t rd, const Register &data);
     void conditional_csr_write(const bit &should_write, size_t csr_pos, const Register &data);
  
@@ -85,4 +85,8 @@ public:
     void execute_instruction(uint32_t instruction);
     void connect_memories(RAM *instr_mem, RAM *data_mem);
     void run_program();
+
+    // Print
+    void handle_memory_write(uint32_t addr, uint32_t value);
+
 };

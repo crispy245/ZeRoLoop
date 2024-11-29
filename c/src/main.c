@@ -1,4 +1,5 @@
-// Entry point for freestanding environment
+#include "../include/print.h"
+
 void *start(void) __attribute__((section(".text.boot")));
 
 #define end() asm volatile ( \
@@ -6,16 +7,11 @@ void *start(void) __attribute__((section(".text.boot")));
     "csrw 21, x5\n\t"     \
     ::: "x5")
 
-// Fibonacci calculation
 int fibonacci(int n)
 {
     int i;
-    // initialize first and second terms
     int t1 = 0, t2 = 1;
-    // initialize the next term (3rd term)
     int nextTerm = t1 + t2;
-
-    // print 3rd to nth terms
     for (i = 3; i <= n; ++i)
     {
         t1 = t2;
@@ -25,21 +21,15 @@ int fibonacci(int n)
     return nextTerm;
 }
 
-// Main computation
 int run(void)
 {
-    // Calculate 47th Fibonacci number
-    return fibonacci(47);
+    return fibonacci(5);
 }
 
-
-
-// Boot entry point
 void _start(void)
 {
-    // Get Fibonacci result
     run();
+    print_char('a');
+    print_char('b');
     end();
-    
-
 }

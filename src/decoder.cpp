@@ -268,6 +268,8 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     std::vector<bit> imm_bits(32, bit(0));
 
     // For each bit position
+    //Optimize bit by storing it into an array and looping over it
+    //Or at least try it out
     for (int i = 0; i < 32; i++)
     {
         bit curr_bit = bit(0);

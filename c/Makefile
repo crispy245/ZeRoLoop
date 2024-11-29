@@ -15,6 +15,9 @@ VMH = $(PROJECT).vmh
 DUMP = $(PROJECT).dump
 
 # Directory structure
+SRC_DIR = src
+INC_DIR = include
+OBJ_DIR = obj
 DEP_DIR = dep
 BIN_DIR = bin
 DUMP_DIR = dump
@@ -25,8 +28,10 @@ PYTHON = python3
 VMH_SCRIPT = objdump2vmh.py
 
 # Source files
-SRCS = main.c
-OBJS = $(SRCS:.c=.o)
+SRCS = $(wildcard $(SRC_DIR)/*.c)
+HEADERS = $(wildcard $(INC_DIR)/*.h)
+OBJS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+DEPS = $(SRCS:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
 
 # Compiler flags
 CFLAGS = -march=rv32izicsr \
@@ -38,22 +43,23 @@ CFLAGS = -march=rv32izicsr \
          -Wall \
          -Wextra \
          -O2 \
-         -g
+         -g \
+         -I$(INC_DIR)
 
 # Linker flags
-LDFLAGS = -T memory_map.ld
+LDFLAGS = -T memory_map.ld -lgcc
 
 # Create directory structure
-$(shell mkdir -p $(DEP_DIR) $(BIN_DIR) $(DUMP_DIR) $(VMH_DIR))
+$(shell mkdir -p $(SRC_DIR) $(INC_DIR) $(OBJ_DIR) $(DEP_DIR) $(BIN_DIR) $(DUMP_DIR) $(VMH_DIR))
 
 .PHONY: all clean depend
 
 all: $(BIN_DIR)/$(TARGET) generate-dumps move-outputs
 
 # Compile C files
-%.o: %.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
-	$(CC) $(CFLAGS) -MM $< > $(DEP_DIR)/$*.d
+	@$(CC) $(CFLAGS) -MM -MT $@ $< > $(DEP_DIR)/$*.d
 
 # Link the ELF file
 $(BIN_DIR)/$(TARGET): $(OBJS)
@@ -68,12 +74,13 @@ generate-dumps: $(BIN_DIR)/$(TARGET)
 move-outputs:
 	mv $(BIN_DIR)/*.dump $(DUMP_DIR)/
 	mv $(BIN_DIR)/*.vmh $(VMH_DIR)/
-	-mv *.d $(DEP_DIR)/ 2>/dev/null || true
 
 clean:
-	rm -f $(OBJS)
-	rm -f *.o *.bin *.hex *.lst *.elf *.map main
-	rm -rf $(DEP_DIR) $(BIN_DIR) $(DUMP_DIR) $(VMH_DIR)
+	rm -f $(OBJS) $(DEPS)
+	rm -rf $(OBJ_DIR)/* $(DEP_DIR)/* $(BIN_DIR)/* $(DUMP_DIR)/* $(VMH_DIR)/*
 
-# Include dependency files
--include $(SRCS:%.c=$(DEP_DIR)/%.d)
+# Header file dependency checking
+depend: $(DEPS)
+
+# Include generated dependencies
+-include $(DEPS)

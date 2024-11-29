@@ -91,7 +91,7 @@ void test_full_system()
 
     // Initialize memories
     RAM instruction_memory(4096, 32);
-    RAM data_memory(1024, 32);
+    RAM data_memory(4096, 32);
 
     // Helper functions
     auto addr_to_bits = [](uint32_t addr, size_t bits)

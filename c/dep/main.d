@@ -1,1 +1,1 @@
-main.o: main.c
+obj/main.o: src/main.c src/../include/print.h
