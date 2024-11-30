@@ -23,5 +23,7 @@ public:
     // PC update methods
     void increase_pc(bigint offset_amount);
     void update_pc_brj(bigint new_pc_val);
+    void increase_pc_add_four_too(bigint offset_amount);
+
     uint32_t read_pc();
 };

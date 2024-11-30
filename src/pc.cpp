@@ -29,6 +29,13 @@ void PC::increase_pc(bigint offset_amount) {
     add(current_pc, current_pc, offset_amount_register);
 }
 
+void PC::increase_pc_add_four_too(bigint offset_amount) {
+    assert((offset_amount % 4) == 0);
+    bigint offset_amount_plus_4 = offset_amount + 4;
+    Register offset_amount_register(offset_amount_plus_4, current_pc.width());
+    add(current_pc, current_pc, offset_amount_register);
+}
+
 void PC::update_pc_brj(bigint new_pc_val) {
     current_pc.update_data(new_pc_val);
 }

@@ -29,6 +29,8 @@ private:
     int32_t get_imm_s(uint32_t instruction);
     int32_t get_imm_b(uint32_t instruction);
     int32_t get_imm_j(uint32_t instruction);
+    int32_t get_imm_u(uint32_t instruction);
+
 
 public:
     struct DecodedInstruction {
@@ -45,6 +47,8 @@ public:
         bit branch;
         bit jal;
         bit jalr;
+        bit lui;
+        bit auipc;
 
         // Instruction type fields
         bool is_alu_op = false;
@@ -98,11 +102,12 @@ public:
         bit is_srai;
 
         // Immediate value and type flags
-        uint32_t imm;
+        int32_t imm;
         bit is_i_imm;
         bit is_s_imm;
         bit is_b_imm;
         bit is_j_imm;
+        bit is_u_imm;
 
         // CSR values and type flags
         bit is_csr_op;

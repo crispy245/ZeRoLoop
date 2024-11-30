@@ -167,10 +167,33 @@ const uint32_t ZeroLoop::get_csr_21()
     return csrs[21].get_data_uint();
 }
 
-void ZeroLoop::handle_memory_write(uint32_t addr, uint32_t value) {
-    std::cout<<"PRINTING"<<std::endl;
-    if (addr >= 0xFFFFFF00) {
-        std::cout << (char)(value & 0xFF);
+void ZeroLoop::handle_syscall()
+{
+    std::cout << "PRINT" << std::endl;
+    // Get syscall number from a7 (x17)
+    Register a7 = read_register(17); // a7 is x17
+    Register a0 = read_register(10); // a0 is x10
+    std::cout << "DEBUG: Before syscall - PC=0x" << pc.read_pc() << std::endl;
+    std::cout << "DEBUG: a0='" << (char)register_to_int_internal(a0) << "'" << std::endl;
+
+    int syscall_num = register_to_int_internal(a7);
+
+    switch (syscall_num)
+    {
+    case 1: // SYS_PRINT_CHAR
+    {
+        char c = (char)register_to_int_internal(a0);
+        std::cout << c;
+        std::cout.flush();
+    }
+    break;
+
+    case 93: // SYS_EXIT
+    {
+        int exit_code = register_to_int_internal(a0);
+        std::cout << "\nProgram exited with code " << exit_code << std::endl;
+    }
+    break;
     }
 }
 
@@ -205,16 +228,8 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit is_negative(comparison < 0);
     bit is_not_zero = ~is_zero;
 
-    // 7. PC Update Logic
-    Register pc_val(pc.read_pc(), 32);
-    Register four(4, 32);
-    Register next_pc(32);
-    add(next_pc, pc_val, four);
-
     // Calculate branch target
     Register offset(decoded.imm, 32);
-    Register branch_target(32);
-    add(branch_target, pc_val, offset);
 
     // Branch condition logic
     bit beq_taken = decoded.is_beq & is_zero;
@@ -225,13 +240,12 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit bgeu_taken = decoded.is_bgeu & ~is_negative;
 
     bit should_branch = (beq_taken | bne_taken | blt_taken | bge_taken | bltu_taken | bgeu_taken) & bit(decoded.is_branch);
-    std::cout << "beq taken = " << decoded.is_beq.value() << std::endl;
 
-    // 8. Memory Address Calculation
+    // 7. Memory Address Calculation
     Register mem_base(32);
     Register mem_addr_calc(32);
     add(mem_addr_calc, rs1, offset);
-    std::vector<bit> mem_addr = addr_to_bits(mem_addr_calc.get_data_uint() >> 2, data_memory->get_addr_bits());
+    std::vector<bit> mem_addr = addr_to_bits(mem_addr_calc.get_data_uint(), data_memory->get_addr_bits());
 
     Register load_result(32);
     if (data_memory != nullptr && decoded.is_load)
@@ -272,14 +286,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit should_store(decoded.is_store);
     conditional_memory_write(should_store, mem_addr, rs2.get_data(), decoded.f3_bits);
 
-    // Printing
-    if (should_store.value())
-    {
-        std::cout << "mem_addr = " << (mem_addr_calc.get_data_uint() >> 2) << std::endl;
-        handle_memory_write(mem_addr_calc.get_data_uint(), rs2.get_data_uint());
-    }
-
-    // 10. Jump Handling
+    // 9. Jump Handling
     Register jalr_target(32);
     add(jalr_target, rs1, offset);
     jalr_target.at(0) = bit(0); // Clear least significant bit for JALR
@@ -287,31 +294,46 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit should_jalr = bit(decoded.is_jump) & bit(decoded.is_jalr);
     bit should_jal = bit(decoded.is_jump) & ~bit(decoded.is_jalr);
 
-    // 11. Final PC Selection
+    bit is_lui = bit(decoded.lui);
+    bit is_auipc = bit(decoded.auipc);
+
+    // // Print syscall
+    // std::cout << "INSTRUCTION: " << instruction << std::endl;
+    // if (instruction == 0x00000073)
+    // {
+    //     handle_syscall();
+    //     pc.update_pc_brj(final_pc.get_data_uint());
+    //     return;
+    // }
+
+    // 10. PC Update
+    Register pc_val(pc.read_pc(), 32);
+    Register four(4, 32);
+    Register next_pc(32);
+    add(next_pc, pc_val, four);
+
+    Register branch_target(32);
+    add(branch_target, pc_val, offset);
+
     Register final_pc(32);
+
+    // AUIPC Update
+    Register new_auipc(32);
+    add(new_auipc, pc_val, rs2_imm);
 
     // Default to PC+4
     for (size_t i = 0; i < 32; i++)
     {
+        // Default
         final_pc.at(i) = next_pc.at(i);
-    }
-
-    // If branch taken, use branch target
-    for (size_t i = 0; i < 32; i++)
-    {
+        // If branch taken
         final_pc.at(i) = should_branch.mux(final_pc.at(i), branch_target.at(i));
-    }
-
-    // If JAL, use JAL target
-    for (size_t i = 0; i < 32; i++)
-    {
+        // If JAL taken
         final_pc.at(i) = should_jal.mux(final_pc.at(i), branch_target.at(i));
-    }
-
-    // If JALR, use JALR target
-    for (size_t i = 0; i < 32; i++)
-    {
+        // If JALR
         final_pc.at(i) = should_jalr.mux(final_pc.at(i), jalr_target.at(i));
+        // If AUIPC
+        final_pc.at(i) = is_auipc.mux(final_pc.at(i), new_auipc.at(i));
     }
 
     // 12. Update PC
@@ -323,15 +345,18 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit should_write_jump = bit(decoded.is_jump);
     bit should_write_csr = bit(decoded.is_csrrw);
 
-    // Write ALU result
+    // Write ALU result, saves alu output on Reg[rd]
     conditional_register_write(should_write_alu, decoded.rd, alu_result);
 
-    // Write load result
+    // Write load result, saves memory load on Reg[rd]
     conditional_register_write(should_write_load, decoded.rd, load_result);
 
-    // Write return address for jumps
+    // Write return address for jumps, saves PC + 4 on Reg[rd]
     Register return_addr(next_pc.get_data_uint(), 32);
     conditional_register_write(should_write_jump, decoded.rd, return_addr);
+
+    // Write U-Type immediates, saves U-Imm on Reg[rd]
+    conditional_register_write(is_lui, decoded.rd, rs2_imm);
 
     // Write CSR result
     conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);

@@ -92,6 +92,10 @@ int32_t Decoder::get_imm_j(uint32_t instruction)
         imm |= 0xFFE00000;
     return imm;
 }
+int32_t Decoder::get_imm_u(uint32_t instruction)
+{
+    return (instruction & 0xFFFFF000); // imm[31:12]
+}
 
 bool Decoder::DecodedInstruction::operator==(const DecodedInstruction &other) const
 {
@@ -158,6 +162,8 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.branch = op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
     decoded.jal = op_bits[6] & op_bits[5] & ~op_bits[4] & op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
     decoded.jalr = op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
+    decoded.lui = ~op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
+    decoded.auipc = ~op_bits[6] & ~op_bits[5] & op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
 
     // R-type operations
     decoded.is_add = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0] & ~decoded.f7_bits[5];
@@ -192,10 +198,8 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
 
     // CSR operations
 
-    // In the instruction type detection section, add:
     decoded.is_csr_op = op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
 
-    // Then add detection for specific CSR instructions based on funct3:
     decoded.is_csrrw = decoded.is_csr_op & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
     decoded.is_csrrs = decoded.is_csr_op & ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
     decoded.is_csrrc = decoded.is_csr_op & ~decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
@@ -203,9 +207,8 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.is_csrrsi = decoded.is_csr_op & decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
     decoded.is_csrrci = decoded.is_csr_op & decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
 
-
-    // CSR 
-    decoded.csr_field = (instruction >> 20) & 0xFFF;  // CSR field is in bits 31:20
+    // CSR
+    decoded.csr_field = (instruction >> 20) & 0xFFF; // CSR field is in bits 31:20
 
     // ALU operation vector setup
     std::vector<bit> sub_op = {bit(1), bit(0), bit(0), bit(0)};
@@ -243,7 +246,6 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.is_jump = decoded.jalr.mux(bit(decoded.is_jump), bit(1)).value();
     decoded.is_jalr = decoded.jalr.mux(bit(0), bit(1)).value();
 
-    // Immediate handling
     bit is_immediate = bit(0);
     is_immediate = is_immediate | decoded.i_alu;
     is_immediate = is_immediate | decoded.load;
@@ -251,13 +253,15 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     is_immediate = is_immediate | decoded.branch;
     is_immediate = is_immediate | decoded.jal;
     is_immediate = is_immediate | decoded.jalr;
+    is_immediate = is_immediate | decoded.lui;
+    is_immediate = is_immediate | decoded.auipc;
     decoded.is_immediate = is_immediate.value();
 
-    // Set immediate type flags
     decoded.is_i_imm = decoded.i_alu | decoded.load | decoded.jalr;
     decoded.is_s_imm = decoded.store;
     decoded.is_b_imm = decoded.branch;
     decoded.is_j_imm = decoded.jal;
+    decoded.is_u_imm = decoded.lui | decoded.auipc;
 
     // Register fields
     decoded.rs1 = get_rs1(instruction);
@@ -268,74 +272,56 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     std::vector<bit> imm_bits(32, bit(0));
 
     // For each bit position
-    //Optimize bit by storing it into an array and looping over it
-    //Or at least try it out
-    for (int i = 0; i < 32; i++)
-    {
-        bit curr_bit = bit(0);
-
-        // Create individual bits for each immediate type
-        bit i_imm_bit = bit((get_imm_i(instruction) >> i) & 1);
-        bit s_imm_bit = bit((get_imm_s(instruction) >> i) & 1);
-        bit b_imm_bit = bit((get_imm_b(instruction) >> i) & 1);
-        bit j_imm_bit = bit((get_imm_j(instruction) >> i) & 1);
-
-        // Mux each bit individually
-        curr_bit = decoded.is_i_imm.mux(curr_bit, i_imm_bit);
-        curr_bit = decoded.is_s_imm.mux(curr_bit, s_imm_bit);
-        curr_bit = decoded.is_b_imm.mux(curr_bit, b_imm_bit);
-        curr_bit = decoded.is_j_imm.mux(curr_bit, j_imm_bit);
-
-        imm_bits[i] = curr_bit;
-    }
-
-    // Convert bit vector back to integer
-    decoded.imm = 0;
-    for (int i = 0; i < 32; i++)
-    {
-        decoded.imm |= (imm_bits[i].value() ? 1 : 0) << i;
-    }
-
-    // Debug output
-    // std::cout << "Instruction type bits:" << std::endl;
-    // std::cout << " i_alu: " << decoded.i_alu.value() << std::endl;
-    // std::cout << " load: " << decoded.load.value() << std::endl;
-    // std::cout << " store: " << decoded.store.value() << std::endl;
-    // std::cout << " branch: " << decoded.branch.value() << std::endl;
-    // std::cout << " jal: " << decoded.jal.value() << std::endl;
-    // std::cout << " jalr: " << decoded.jalr.value() << std::endl;
-
-    // std::cout << "Branch condition bits:" << std::endl;
-    // std::cout << " beq: " << decoded.is_beq.value() << std::endl;
-    // std::cout << " bne: " << decoded.is_bne.value() << std::endl;
-    // std::cout << " blt: " << decoded.is_blt.value() << std::endl;
-    // std::cout << " bge: " << decoded.is_bge.value() << std::endl;
-    // std::cout << " bltu: " << decoded.is_bltu.value() << std::endl;
-    // std::cout << " bgeu: " << decoded.is_bgeu.value() << std::endl;
-
-    // std::cout << "Function bits:" << std::endl;
-    // std::cout << " funct3: ";
-    // for (const auto &b : decoded.f3_bits)
+    // Optimize bit by storing it into an array and looping over it
+    // Or at least try it out
+    // for (int i = 0; i < 32; i++)
     // {
-    //     std::cout << b.value();
-    // }
-    // std::cout << std::endl;
+    //     bit curr_bit = bit(0);
 
-    // std::cout << "ALU operation bits:" << std::endl;
-    // std::cout << " alu_op: ";
-    // for (const auto &b : decoded.alu_op)
+    //     // Create individual bits for each immediate type
+    //     bit i_imm_bit = bit((get_imm_i(instruction) >> i) & 1);
+    //     bit s_imm_bit = bit((get_imm_s(instruction) >> i) & 1);
+    //     bit b_imm_bit = bit((get_imm_b(instruction) >> i) & 1);
+    //     bit j_imm_bit = bit((get_imm_j(instruction) >> i) & 1);
+
+    //     // Mux each bit individually
+    //     curr_bit = decoded.is_i_imm.mux(curr_bit, i_imm_bit);
+    //     curr_bit = decoded.is_s_imm.mux(curr_bit, s_imm_bit);
+    //     curr_bit = decoded.is_b_imm.mux(curr_bit, b_imm_bit);
+    //     curr_bit = decoded.is_j_imm.mux(curr_bit, j_imm_bit);
+
+    //     imm_bits[i] = curr_bit;
+    // }
+
+    // decoded.imm = 0;
+    // for (int i = 0; i < 32; i++)
     // {
-    //     std::cout << b.value();
+    //     decoded.imm |= (imm_bits[i].value() ? 1 : 0) << i;
     // }
-    // std::cout << std::endl;
 
-    // std::cout << "Immediate handling:" << std::endl;
-    // std::cout << " is_immediate: " << decoded.is_immediate << std::endl;
-    // std::cout << " imm value: " << decoded.imm << std::endl;
-    // std::cout << " i_imm: " << decoded.is_i_imm.value() << std::endl;
-    // std::cout << " s_imm: " << decoded.is_s_imm.value() << std::endl;
-    // std::cout << " b_imm: " << decoded.is_b_imm.value() << std::endl;
-    // std::cout << " j_imm: " << decoded.is_j_imm.value() << std::endl;
+    std::cout << "get_imm_u = " << get_imm_u(instruction) << std::endl;
+    int32_t imm = 0;
+    if (decoded.is_u_imm.value())
+    {
+        imm = get_imm_u(instruction);
+    }
+    else if (decoded.is_i_imm.value())
+    {
+        imm = get_imm_i(instruction);
+    }
+    else if (decoded.is_s_imm.value())
+    {
+        imm = get_imm_s(instruction);
+    }
+    else if (decoded.is_b_imm.value())
+    {
+        imm = get_imm_b(instruction);
+    }
+    else if (decoded.is_j_imm.value())
+    {
+        imm = get_imm_j(instruction);
+    }
+    decoded.imm = imm;
 
     return decoded;
 }

@@ -26,10 +26,10 @@ public:
           pc(0, reg_width),
           instruction_memory(nullptr),
           data_memory(nullptr),
-          csrs(4096){}
+          csrs(4096) {}
 
     // Deep copy constructor
-    ZeroLoop(const ZeroLoop& other)
+    ZeroLoop(const ZeroLoop &other)
         : reg_file(other.reg_file),
           decoder(other.decoder),
           alu(other.alu),
@@ -38,7 +38,8 @@ public:
           data_memory(other.data_memory),
           csrs(other.csrs) {}
 
-        void copy_state_from(const ZeroLoop& other) {
+    void copy_state_from(const ZeroLoop &other)
+    {
         reg_file = other.reg_file;
         pc = other.pc;
         instruction_memory = other.instruction_memory;
@@ -58,8 +59,7 @@ public:
     // ALU operations
     Register execute_alu(Register &a, Register &b, std::vector<bit> alu_op);
     Register two_complement(Register b);
-    Register subtract(Register& result, Register a, Register b);
-
+    Register subtract(Register &result, Register a, Register b);
 
     // Component access
     RegisterFile &get_register_file();
@@ -71,22 +71,23 @@ public:
     // Conditional write to units
     void conditional_pc_jump(const bit &should_jump, const Register &target);
     void conditional_pc_increment(const bit &should_increment, const Register &offset);
-    void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data,std::vector<bit> f3_bits);
+    void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits);
     void conditional_register_write(const bit &should_write, size_t rd, const Register &data);
     void conditional_csr_write(const bit &should_write, size_t csr_pos, const Register &data);
  
+ 
+
+
 
     void full_adder(bit &s, bit &c, bit a, bit b, bit cin);
     void add(Register &ret, Register a, Register b);
-    uint32_t get_pc() { return pc.read_pc();};
-
+    uint32_t get_pc() { return pc.read_pc(); };
 
     // Stage operations
     void execute_instruction(uint32_t instruction);
     void connect_memories(RAM *instr_mem, RAM *data_mem);
     void run_program();
 
-    // Print
-    void handle_memory_write(uint32_t addr, uint32_t value);
-
+    // syscalls
+    void handle_syscall();
 };

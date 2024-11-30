@@ -1,40 +1,60 @@
 ENTRY(_start)
 MEMORY
 {
-    rom  (rx) : ORIGIN = 0x000, LENGTH = 4K     /* Full instruction_memory */
-    ram  (rw) : ORIGIN = 0x000, LENGTH = 3840   /* 3.75K for actual data */
-    io   (rw) : ORIGIN = 0xF00, LENGTH = 256    /* Last 256 bytes reserved for I/O */
+    /* Expanded memory to accommodate compliance tests */
+    rom  (rx) : ORIGIN = 0x00000000, LENGTH = 8K    /* Doubled ROM size */
+    ram  (rw) : ORIGIN = 0x00002000, LENGTH = 8K    /* Moved RAM start, doubled size */
 }
+
 SECTIONS
 {
+    /* Keep tohost near start of memory for compliance tests */
+    .tohost 0x00002000 : {
+        *(.tohost)
+    } > ram
+    
     .text : {
-        KEEP(*(.text.boot))
-        *(.text*)
+        KEEP(*(.text.boot))  /* Boot code first */
+        *(.text.init)        /* Init code */
+        *(.text*)           /* All other code */
+        *(.xcpthandler)     /* Exception handler */
+        . = ALIGN(4);
     } > rom
     
     .rodata : {
         *(.rodata*)
+        . = ALIGN(4);
     } > rom
     
     .data : {
+        . = ALIGN(4);
         *(.data*)
+        . = ALIGN(4);
     } > ram AT > rom
     
     .bss (NOLOAD) : {
+        . = ALIGN(4);
+        __bss_start = .;
         *(.bss*)
         *(COMMON)
+        . = ALIGN(4);
+        __bss_end = .;
     } > ram
     
-    /* Stack section */
+    /* Stack section - reduced size to 1KB */
     .stack (NOLOAD) : {
         . = ALIGN(16);
-        . = . + 0x200; /* 512 bytes stack */
+        . = . + 0x400; /* 1KB stack */
         . = ALIGN(16);
         __stack_top = .;
     } > ram
 
-    /* Prevent any data from being placed in the I/O region */
-    .io (NOLOAD) : {
-        KEEP(*(.io))
-    } > io
+    /* Add a section for _start if it's missing */
+    .text.start : {
+        /* Define _start symbol if not provided */
+        PROVIDE(_start = .);
+    } > rom
 }
+
+/* Define _start as weak symbol to allow overriding */
+PROVIDE(_start = 0x00000000);
