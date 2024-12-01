@@ -2,31 +2,36 @@
 #include "alu.h"
 #include <iostream>
 
-
-void ALU::half_adder(bit& s, bit& c, bit a, bit b) {
+void ALU::half_adder(bit &s, bit &c, bit a, bit b)
+{
     s = a ^ b;
     c = a & b;
 }
 
-void ALU::full_adder(bit& s, bit& c, bit a, bit b, bit cin) {
+void ALU::full_adder(bit &s, bit &c, bit a, bit b, bit cin)
+{
     bit t = (a ^ b);
     s = t ^ cin;
     c = (a & b) | (cin & t);
 }
 
-Register ALU::add(Register& ret, Register a, Register b) {
+Register ALU::add(Register &ret, Register a, Register b)
+{
     bit c;
-    for (bigint i = 0; i < a.width(); i++) {
+    for (bigint i = 0; i < a.width(); i++)
+    {
         full_adder(ret.at(i), c, a.at(i), b.at(i), c);
     }
     return ret;
 }
 
-Register ALU::two_complement(Register b) {
+Register ALU::two_complement(Register b)
+{
     Register complement(b.width());
 
     // Invert all bits (one's complement)
-    for (size_t i = 0; i < b.width(); ++i) {
+    for (size_t i = 0; i < b.width(); ++i)
+    {
         complement.at(i) = ~b.at(i);
     }
 
@@ -36,27 +41,33 @@ Register ALU::two_complement(Register b) {
     return complement;
 }
 
-Register ALU::subtract(Register& result, Register a, Register b) {
+Register ALU::subtract(Register &result, Register a, Register b)
+{
     Register b_complement = two_complement(b);
     bit carry = bit(0);
     add(result, a, b_complement);
     return result;
 }
 
-Register ALU::logical_shift_left(Register a, Register shift_amount) {
+Register ALU::logical_shift_left(Register a, Register shift_amount)
+{
     Register result(a.width());
 
-    for (bigint i = 0; i < a.width(); i++) {
+    for (bigint i = 0; i < a.width(); i++)
+    {
         bit shifted_bit = bit(0);
 
         bigint src_pos = i;
-        for (bigint j = 0; j < shift_amount.width(); j++) {
-            if (shift_amount.at(j).value()) {
+        for (bigint j = 0; j < shift_amount.width(); j++)
+        {
+            if (shift_amount.at(j).value())
+            {
                 src_pos -= (1 << j);
             }
         }
 
-        if (src_pos >= 0 && src_pos < a.width()) {
+        if (src_pos >= 0 && src_pos < a.width())
+        {
             shifted_bit = a.at(src_pos);
         }
 
@@ -65,20 +76,25 @@ Register ALU::logical_shift_left(Register a, Register shift_amount) {
     return result;
 }
 
-Register ALU::logical_shift_right(Register a, Register shift_amount) {
+Register ALU::logical_shift_right(Register a, Register shift_amount)
+{
     Register result(a.width());
 
-    for (bigint i = 0; i < a.width(); i++) {
+    for (bigint i = 0; i < a.width(); i++)
+    {
         bit shifted_bit = bit(0);
 
         bigint src_pos = i;
-        for (bigint j = 0; j < shift_amount.width(); j++) {
-            if (shift_amount.at(j).value()) {
+        for (bigint j = 0; j < shift_amount.width(); j++)
+        {
+            if (shift_amount.at(j).value())
+            {
                 src_pos += (1 << j);
             }
         }
 
-        if (src_pos >= 0 && src_pos < a.width()) {
+        if (src_pos >= 0 && src_pos < a.width())
+        {
             shifted_bit = a.at(src_pos);
         }
 
@@ -87,21 +103,26 @@ Register ALU::logical_shift_right(Register a, Register shift_amount) {
     return result;
 }
 
-Register ALU::arithmetic_shift_right(Register a, Register shift_amount) {
+Register ALU::arithmetic_shift_right(Register a, Register shift_amount)
+{
     Register result(a.width());
     bit sign_bit = a.at(a.width() - 1);
 
-    for (bigint i = 0; i < a.width(); i++) {
+    for (bigint i = 0; i < a.width(); i++)
+    {
         bit shifted_bit = sign_bit;
 
         bigint src_pos = i;
-        for (bigint j = 0; j < shift_amount.width(); j++) {
-            if (shift_amount.at(j).value()) {
+        for (bigint j = 0; j < shift_amount.width(); j++)
+        {
+            if (shift_amount.at(j).value())
+            {
                 src_pos += (1 << j);
             }
         }
 
-        if (src_pos >= 0 && src_pos < a.width()) {
+        if (src_pos >= 0 && src_pos < a.width())
+        {
             shifted_bit = a.at(src_pos);
         }
 
@@ -110,16 +131,19 @@ Register ALU::arithmetic_shift_right(Register a, Register shift_amount) {
     return result;
 }
 
-bit ALU::bit_vector_compare(const std::vector<bit>& v, const std::vector<bit>& w) {
+bit ALU::bit_vector_compare(const std::vector<bit> &v, const std::vector<bit> &w)
+{
     assert(v.size() == w.size());
     bit ret = v.at(0) ^ w.at(0);
-    for (bigint i = 1; i < v.size(); i++) {
+    for (bigint i = 1; i < v.size(); i++)
+    {
         ret |= v.at(i) ^ w.at(i);
     }
     return ret;
 }
 
-Register ALU::compare_slt(Register a, Register b) {
+Register ALU::compare_slt(Register a, Register b)
+{
     Register result(a.width());
     Register sub_result(a.width());
 
@@ -131,12 +155,13 @@ Register ALU::compare_slt(Register a, Register b) {
     return result;
 }
 
-Register ALU::compare_sltu(Register a, Register b) {
+Register ALU::compare_sltu(Register a, Register b)
+{
     Register result(a.width());
     Register sub_result(a.width());
-    
+
     subtract(sub_result, a, b);
-    
+
     // For unsigned comparison:
     // If the highest bit is 1 after subtraction, there was a borrow,
     // meaning a < b in unsigned comparison
@@ -144,7 +169,8 @@ Register ALU::compare_sltu(Register a, Register b) {
     return result;
 }
 
-Register ALU::execute(Register& a, Register& b, std::vector<bit> alu_op) {
+Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
+{
     Register result(a.width());
 
     // Decode operation using the alu_op bits
@@ -180,13 +206,15 @@ Register ALU::execute(Register& a, Register& b, std::vector<bit> alu_op) {
     slt_result = compare_slt(a, b);
     sltu_result = compare_sltu(a, b);
 
-    for (bigint i = 0; i < a.width(); i++) {
+    for (bigint i = 0; i < a.width(); i++)
+    {
         xor_result.at(i) = a.at(i) ^ b.at(i);
         or_result.at(i) = a.at(i) | b.at(i);
         and_result.at(i) = a.at(i) & b.at(i);
     }
 
-    for (bigint i = 0; i < result.width(); i++) {
+    for (bigint i = 0; i < result.width(); i++)
+    {
         bit temp = result.at(i);
 
         temp = is_sltu.mux(temp, sltu_result.at(i));

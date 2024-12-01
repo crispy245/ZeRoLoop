@@ -49,6 +49,19 @@ int32_t register_to_int_internal(Register &reg)
     return result;
 }
 
+uint32_t register_to_uint_internal(Register &reg)
+{
+    uint32_t result = 0;
+    for (int i = 0; i < reg.width(); i++)
+    {
+        if (reg.at(i).value())
+        {
+            result |= (1U << i);
+        }
+    }
+    return result;
+}
+
 // Connect memories
 void ZeroLoop::connect_memories(RAM *instr_mem, RAM *data_mem)
 {
@@ -224,8 +237,11 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
 
     // 6. Branch Condition Evaluation
     int32_t comparison = register_to_int_internal(branch_comparison);
+    uint32_t unsigned_comparison = register_to_uint_internal(branch_comparison);
+
     bit is_zero(comparison == 0);
     bit is_negative(comparison < 0);
+    bit is_greater_unsigned(rs1.get_data_uint() >= rs2.get_data_uint());
     bit is_not_zero = ~is_zero;
 
     // Calculate branch target
@@ -236,8 +252,15 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit bne_taken = decoded.is_bne & is_not_zero;
     bit blt_taken = decoded.is_blt & is_negative;
     bit bge_taken = decoded.is_bge & ~is_negative;
-    bit bltu_taken = decoded.is_bltu & is_negative;
-    bit bgeu_taken = decoded.is_bgeu & ~is_negative;
+    bit bltu_taken = decoded.is_bltu & ~is_greater_unsigned;
+    bit bgeu_taken = decoded.is_bgeu & is_greater_unsigned;
+
+    std::cout << "BEQ? :" << decoded.is_beq.value() << " is zero? : " << is_zero.value() << std::endl;
+    std::cout << "BNE? :" << decoded.is_bne.value() << " is not zero? : " << is_not_zero.value() << std::endl;
+    std::cout << "BLT? :" << decoded.is_blt.value() << " is negative? : " << is_negative.value() << std::endl;
+    std::cout << "BGE? :" << decoded.is_bge.value() << " is not negative? : " << (!is_negative.value()) << std::endl;
+    std::cout << "BLTU? :" << decoded.is_bltu.value() << " is not greater unsigned? : " << (!is_greater_unsigned.value()) << std::endl;
+    std::cout << "BGEU? :" << decoded.is_bgeu.value() << " is greater unsigned? : " << is_greater_unsigned.value() << std::endl;
 
     bit should_branch = (beq_taken | bne_taken | blt_taken | bge_taken | bltu_taken | bgeu_taken) & bit(decoded.is_branch);
 
@@ -250,14 +273,20 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     Register load_result(32);
     if (data_memory != nullptr && decoded.is_load)
     {
+
         // Decode load type from f3 bits
         bit is_lb = ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
         bit is_lh = ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
         bit is_lw = ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
-        bit is_lbu = ~decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
-        bit is_lhu = decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
-
+        bit is_lbu = decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
+        bit is_lhu = decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
         std::vector<bit> loaded_data = data_memory->read(mem_addr);
+        std::cout << "DEBUG: Loaded data bits: ";
+        for (int i = 7; i >= 0; i--)
+        {
+            std::cout << loaded_data[i].value();
+        }
+        std::cout << std::endl;
 
         bit sign_bit_b = loaded_data[7];  // Sign bit for byte
         bit sign_bit_h = loaded_data[15]; // Sign bit for halfword
@@ -291,20 +320,11 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     add(jalr_target, rs1, offset);
     jalr_target.at(0) = bit(0); // Clear least significant bit for JALR
 
-    bit should_jalr = bit(decoded.is_jump) & bit(decoded.is_jalr);
-    bit should_jal = bit(decoded.is_jump) & ~bit(decoded.is_jalr);
+    bit should_jalr = bit(decoded.is_jalr);
+    bit should_jal = bit(decoded.jal.value());
 
     bit is_lui = bit(decoded.lui);
     bit is_auipc = bit(decoded.auipc);
-
-    // // Print syscall
-    // std::cout << "INSTRUCTION: " << instruction << std::endl;
-    // if (instruction == 0x00000073)
-    // {
-    //     handle_syscall();
-    //     pc.update_pc_brj(final_pc.get_data_uint());
-    //     return;
-    // }
 
     // 10. PC Update
     Register pc_val(pc.read_pc(), 32);
@@ -312,8 +332,19 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     Register next_pc(32);
     add(next_pc, pc_val, four);
 
+    // Print syscall
+    if (instruction == 0x00000073)
+    {
+        handle_syscall();
+        pc.update_pc_brj(next_pc.get_data_uint());
+        return;
+    }
+
     Register branch_target(32);
     add(branch_target, pc_val, offset);
+
+    Register jal_target(32);
+    add(jal_target, pc_val, rs2_imm);
 
     Register final_pc(32);
 
@@ -329,12 +360,14 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
         // If branch taken
         final_pc.at(i) = should_branch.mux(final_pc.at(i), branch_target.at(i));
         // If JAL taken
-        final_pc.at(i) = should_jal.mux(final_pc.at(i), branch_target.at(i));
-        // If JALR
+        final_pc.at(i) = should_jal.mux(final_pc.at(i), jal_target.at(i));
+        // If JALR taken
         final_pc.at(i) = should_jalr.mux(final_pc.at(i), jalr_target.at(i));
-        // If AUIPC
-        final_pc.at(i) = is_auipc.mux(final_pc.at(i), new_auipc.at(i));
     }
+    std::cout << "should_branch? " << should_branch.value() << std::endl;
+    std::cout << "should_jal? " << should_jal.value() << std::endl;
+    std::cout << "should_jalr? " << should_jalr.value() << std::endl;
+    jalr_target.print("jalr_target: ");
 
     // 12. Update PC
     pc.update_pc_brj(final_pc.get_data_uint());
@@ -342,7 +375,8 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     // 13. Register Write Back
     bit should_write_alu = ~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op);
     bit should_write_load = bit(decoded.is_load);
-    bit should_write_jump = bit(decoded.is_jump);
+    bit should_write_j = bit(decoded.is_jump);
+    bit should_write_jalr = bit(decoded.is_jalr);
     bit should_write_csr = bit(decoded.is_csrrw);
 
     // Write ALU result, saves alu output on Reg[rd]
@@ -351,12 +385,14 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     // Write load result, saves memory load on Reg[rd]
     conditional_register_write(should_write_load, decoded.rd, load_result);
 
-    // Write return address for jumps, saves PC + 4 on Reg[rd]
-    Register return_addr(next_pc.get_data_uint(), 32);
-    conditional_register_write(should_write_jump, decoded.rd, return_addr);
+    // Write return address for JAL/R, saves PC + 4 on Reg[rd]
+    conditional_register_write(should_write_j, decoded.rd, next_pc);
 
-    // Write U-Type immediates, saves U-Imm on Reg[rd]
+    // Write U-Type immediates for LUI, saves U-Imm on Reg[rd]
     conditional_register_write(is_lui, decoded.rd, rs2_imm);
+
+    // Write U-Type immediates for AUIPC, saves PC + U-Imm on Reg[rd]
+    conditional_register_write(is_auipc, decoded.rd, new_auipc);
 
     // Write CSR result
     conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);

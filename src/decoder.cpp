@@ -137,10 +137,17 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     uint32_t funct7 = get_funct7(instruction);
 
     // Store funct3 and funct7 bits
+    std::cout<<"funct3 : "<<funct3<<" ";
     for (int i = 0; i < 3; i++)
     {
         decoded.f3_bits[i] = bit((funct3 >> i) & 1);
     }
+    std::cout<<"after shift..."<<std::endl;
+    for(auto x : decoded.f3_bits){
+        std::cout<<x.value()<<" ";
+    }
+    std::cout<<endl;
+
     for (int i = 0; i < 7; i++)
     {
         decoded.f7_bits[i] = bit((funct7 >> i) & 1);
@@ -153,6 +160,12 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     {
         op_bits.push_back(bit((opcode >> i) & 1));
     }
+    std::cout << "Opcode bits: ";
+    for (int i = 6; i >= 0; i--)
+    {
+        std::cout << op_bits[i].value();
+    }
+    std::cout << std::endl;
 
     // Instruction type detection
     decoded.i_alu = ~op_bits[6] & ~op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
@@ -161,7 +174,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.store = ~op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
     decoded.branch = op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
     decoded.jal = op_bits[6] & op_bits[5] & ~op_bits[4] & op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
-    decoded.jalr = op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
+    decoded.jalr = op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
     decoded.lui = ~op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
     decoded.auipc = ~op_bits[6] & ~op_bits[5] & op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
 

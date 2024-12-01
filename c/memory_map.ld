@@ -1,36 +1,34 @@
 ENTRY(_start)
 MEMORY
 {
-    /* Expanded memory to accommodate compliance tests */
-    rom  (rx) : ORIGIN = 0x00000000, LENGTH = 8K    /* Doubled ROM size */
-    ram  (rw) : ORIGIN = 0x00002000, LENGTH = 8K    /* Moved RAM start, doubled size */
+    instruction_mem (rx) : ORIGIN = 0x00000000, LENGTH = 8K
+    data_mem (rw)       : ORIGIN = 0x00000000, LENGTH = 8K  
 }
 
 SECTIONS
 {
-    /* Keep tohost near start of memory for compliance tests */
-    .tohost 0x00002000 : {
-        *(.tohost)
-    } > ram
-    
+    /* All code goes to instruction memory */
     .text : {
-        KEEP(*(.text.boot))  /* Boot code first */
-        *(.text.init)        /* Init code */
+        *(.text._start)     /* Entry point first */
         *(.text*)           /* All other code */
-        *(.xcpthandler)     /* Exception handler */
         . = ALIGN(4);
-    } > rom
+    } > instruction_mem
     
     .rodata : {
         *(.rodata*)
         . = ALIGN(4);
-    } > rom
+    } > instruction_mem
+    
+    /* All data goes to data memory */
+    .tohost 0x00002000 : {
+        *(.tohost)
+    } > data_mem
     
     .data : {
         . = ALIGN(4);
         *(.data*)
         . = ALIGN(4);
-    } > ram AT > rom
+    } > data_mem
     
     .bss (NOLOAD) : {
         . = ALIGN(4);
@@ -39,22 +37,12 @@ SECTIONS
         *(COMMON)
         . = ALIGN(4);
         __bss_end = .;
-    } > ram
+    } > data_mem
     
-    /* Stack section - reduced size to 1KB */
     .stack (NOLOAD) : {
         . = ALIGN(16);
-        . = . + 0x400; /* 1KB stack */
+        . = . + 0x400;      /* 1KB stack */
         . = ALIGN(16);
         __stack_top = .;
-    } > ram
-
-    /* Add a section for _start if it's missing */
-    .text.start : {
-        /* Define _start symbol if not provided */
-        PROVIDE(_start = .);
-    } > rom
+    } > data_mem
 }
-
-/* Define _start as weak symbol to allow overriding */
-PROVIDE(_start = 0x00000000);

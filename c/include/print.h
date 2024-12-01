@@ -17,11 +17,12 @@ static inline void print_char(const char c)
     );
 }
 
-static inline void print_str(const char *str)
-{
-    while (*str)
-    {
-        print_char(*str++);
+static inline void print_str(const char *str) {
+    while (1) {
+        char c = *str;
+        if (c == 0) break;
+        print_char(c);
+        str++;
     }
 }
 

@@ -1,6 +1,5 @@
 #include "../include/print.h"
 
-void *start(void) __attribute__((section(".text.boot")));
 
 #define end() asm volatile ( \
     "li x5, 1\n\t"          \
@@ -21,15 +20,12 @@ int fibonacci(int n)
     return nextTerm;
 }
 
-int run(void)
-{
-    return fibonacci(5);
+int run(){
+    return fibonacci(47);
 }
 
-void _start(void)
+void __attribute__((section(".text._start"))) _start(void)
 {
     run();
-    print_char('a');
-    print_char('b');
     end();
 }
