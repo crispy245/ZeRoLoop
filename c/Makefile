@@ -39,24 +39,25 @@ DEPS = $(SRCS:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
 
 # Compiler flags
 CFLAGS = -march=rv32izicsr \
-         -mabi=ilp32 \
-         -nostdlib \
-         -ffreestanding \
-         -nostartfiles \
-         -fno-exceptions \
-         -Wall \
-         -Wextra \
-         -O2 \
-         -g \
-         -I$(INC_DIR)
+    -mabi=ilp32 \
+    -nostdlib \
+    -ffreestanding \
+    -nostartfiles \
+    -fno-exceptions \
+    -fno-inline \
+    -Wall \
+    -Wextra \
+    -O0 \
+    -g \
+    -I$(INC_DIR)
 
 # RISC-V test flags
 TEST_FLAGS = -march=rv32izicsr \
-             -mabi=ilp32 \
-             -nostdlib \
-             -nostartfiles \
-             -I$(INC_DIR) \
-             -I$(RISCV_TESTS_DIR)
+    -mabi=ilp32 \
+    -nostdlib \
+    -nostartfiles \
+    -I$(INC_DIR) \
+    -I$(RISCV_TESTS_DIR)
 
 # Linker flags
 LDFLAGS = -T memory_map.ld -lgcc
@@ -79,7 +80,7 @@ $(BIN_DIR)/$(TARGET): $(OBJS)
 
 # Generate dumps and VMH files
 generate-dumps: $(BIN_DIR)/$(TARGET)
-	$(OBJDUMP) -EL -sz --section=.xcpthandler --section=.text --section=.data $< > $(BIN_DIR)/$(TARGET).dump
+	$(OBJDUMP) -EL -sz --section=.xcpthandler --section=.text --section=.data --section=.text._start $< > $(BIN_DIR)/$(TARGET).dump
 	$(PYTHON) $(VMH_SCRIPT) $(BIN_DIR)/$(TARGET).dump > $(BIN_DIR)/$(TARGET).vmh
 
 # Move outputs to appropriate directories
@@ -94,7 +95,7 @@ test: $(ASM_TESTS)
 		echo "Building $$test..."; \
 		$(CC) $(TEST_FLAGS) -T memory_map.ld -nostdlib \
 			$(RISCV_TESTS_DIR)/$$test.S -o $(BIN_DIR)/$$test.elf && \
-		$(OBJDUMP)  -EL -sz --section=.xcpthandler --section=.text --section=.data $(BIN_DIR)/$$test.elf > $(DUMP_DIR)/$$test.dump && \
+		$(OBJDUMP) -EL -sz --section=.xcpthandler --section=.text --section=.data $(BIN_DIR)/$$test.elf > $(DUMP_DIR)/$$test.dump && \
 		$(PYTHON) $(VMH_SCRIPT) $(DUMP_DIR)/$$test.dump > $(RISCV_TESTS_VMH)/$$test.vmh; \
 	done
 

@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -I./include -std=c++17 -g
+CXXFLAGS = -O3 -I./include -std=c++17 -g
 LDFLAGS = -lgmp
 SOURCES = $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 TEST_LOG = test_results.txt
