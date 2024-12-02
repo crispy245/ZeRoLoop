@@ -14,8 +14,8 @@
 #define TEST_RISCV_BEGIN                                                \
     .section .text;                                                     \
     .align  4;                                                          \
-    .globl _test;                                                       \
-_test:                                                                  \
+    .globl _start;                                                       \
+_start:                                                                  \
 
 //------------------------------------------------------------------------
 // TEST_RISCV_END
