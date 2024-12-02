@@ -20,10 +20,6 @@ SECTIONS
         . = ALIGN(4);
     } > instruction_mem
 
-    /* All data goes to data memory */
-    .tohost 0x00002000 : {
-        *(.tohost)
-    } > data_mem
 
     .data : {
         . = ALIGN(4);
