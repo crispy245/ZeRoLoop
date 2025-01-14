@@ -38,7 +38,7 @@ OBJS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEPS = $(SRCS:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
 
 # Compiler flags
-CFLAGS = -march=rv32izicsr \
+CFLAGS =-march=rv32i_zicsr \
     -mabi=ilp32 \
     -nostdlib \
     -ffreestanding \
@@ -80,7 +80,8 @@ $(BIN_DIR)/$(TARGET): $(OBJS)
 
 # Generate dumps and VMH files
 generate-dumps: $(BIN_DIR)/$(TARGET)
-	$(OBJDUMP) -EL -sz --section=.xcpthandler --section=.text --section=.data --section=.text._start $< > $(BIN_DIR)/$(TARGET).dump
+	$(OBJDUMP) -EL -sz --section=.text --section=.data --section=.rodata $< > $(BIN_DIR)/$(TARGET).dump
+	$(OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.text._start  --section=.rodata  $< > $(BIN_DIR)/$(TARGET).detailed.dump
 	$(PYTHON) $(VMH_SCRIPT) $(BIN_DIR)/$(TARGET).dump > $(BIN_DIR)/$(TARGET).vmh
 
 # Move outputs to appropriate directories
@@ -95,7 +96,8 @@ test: $(ASM_TESTS)
 		echo "Building $$test..."; \
 		$(CC) $(TEST_FLAGS) -T memory_map.ld -nostdlib \
 			$(RISCV_TESTS_DIR)/$$test.S -o $(BIN_DIR)/$$test.elf && \
-		$(OBJDUMP) -EL -sz --section=.xcpthandler --section=.text --section=.data $(BIN_DIR)/$$test.elf > $(DUMP_DIR)/$$test.dump && \
+		$(OBJDUMP) -EL -sz --section=.text --section=.data --section=.rodata $(BIN_DIR)/$$test.elf > $(DUMP_DIR)/$$test.dump && \
+		$(OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.rodata $(BIN_DIR)/$$test.elf > $(DUMP_DIR)/$$test.detailed.dump && \
 		$(PYTHON) $(VMH_SCRIPT) $(DUMP_DIR)/$$test.dump > $(RISCV_TESTS_VMH)/$$test.vmh; \
 	done
 

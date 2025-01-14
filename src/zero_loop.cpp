@@ -136,24 +136,110 @@ void ZeroLoop::conditional_pc_increment(const bit &should_increment, const Regis
     }
 }
 
+Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::vector<bit> &addr, std::vector<bit> f3_bits)
+{
+    Register result(32);
+
+    if (should_read.value() && data_memory != nullptr)
+    {
+        // Decode funct3
+        bit is_lb = ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0]; // 000
+        bit is_lh = ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];  // 001
+        bit is_lw = ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];  // 010
+        bit is_lbu = f3_bits[2] & ~f3_bits[1] & ~f3_bits[0]; // 100
+        bit is_lhu = f3_bits[2] & ~f3_bits[1] & f3_bits[0];  // 101
+
+        std::cout << "LOAD addr : ";
+        for (int i = addr.size() - 1; i >= 0; i--)
+        {
+            std::cout << addr[i].value();
+        }
+        std::cout << endl;
+
+        // Get memory data
+        std::vector<bit> mem_data = data_memory->read(addr);
+        cout<<"Mem data: ";
+        for(int i = mem_data.size(); i >= 0; i--){
+            cout<<mem_data[i].value();
+        }
+        cout<<endl;
+
+        // Determine sign extension based on load type
+        bit sign_byte = is_lb.mux(bit(0), mem_data[7]);
+        bit sign_half = is_lh.mux(bit(0), mem_data[15]);
+        std::cout<<"Sign byte is : "<<sign_byte.value()<<endl;
+
+        // Process each bit
+        for (int i = 0; i < 32; i++)
+        {
+            bit keep_byte = (is_lb | is_lbu) & (i < 8);
+            bit keep_half = (is_lh | is_lhu) & (i < 16);
+            bit keep_word = is_lw & (i < 32);
+
+            bit should_extend_byte = is_lb & (i >= 8) & sign_byte;
+            bit should_extend_half = is_lh & (i >= 16) & sign_half;
+
+            bit keep_storing = keep_byte | keep_half |keep_word;
+            cout<<"keep_byte :"<<keep_byte.value();
+
+            result.at(i) = keep_storing.mux(0,mem_data[i]);
+            result.at(i) = should_extend_byte.mux(result.at(i), sign_byte);
+            result.at(i) = should_extend_half.mux(result.at(i), sign_half);
+
+        }
+    }
+    result.print("Loaded data : ");
+    return result;
+}
+
 void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits)
 {
     bit is_sb = ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0];
     bit is_sh = ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];
     bit is_sw = ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];
 
-    // This is honestly an ugly hack but we can't just write to partial parts
-    // of the ram (at least that am aware of), so load the adress we want,
-    // write the parts we modify and send it back
     if (should_write.value() && data_memory != nullptr)
     {
+        std::cout << "STORING: " << std::endl;
+        std::cout << "STORE addr : ";
+        for (int i = addr.size() - 1; i >= 0; i--)
+        {
+            std::cout << addr[i].value();
+        }
+        std::cout << std::endl;
+
         std::vector<bit> original_data = data_memory->read(addr);
+        std::cout << "Original data: ";
+        for (int i = 31; i >= 0; i--)
+        {
+            std::cout << original_data[i].value();
+        }
+        std::cout << std::endl;
+
+        std::cout << "Input data:    ";
+        for (int i = 31; i >= 0; i--)
+        {
+            std::cout << data[i].value();
+        }
+        std::cout << std::endl;
+
         std::vector<bit> store_data(32);
-        for (size_t i = 0; i < 32; i++)
+        std::cout << "Keep bits:     ";
+        for (int i = 0; i < 31; i++)
         {
             bit keep_storing = ((is_sb.value() & (i < 8)) || (is_sh.value() & (i < 16)) || (is_sw.value() & (i < 32)));
-            store_data.at(i) = keep_storing.mux(original_data.at(i), data.at(i));
+            std::cout << keep_storing.value();
+            store_data[i] = keep_storing.mux(original_data[i], data[i]);
         }
+        std::cout << std::endl;
+
+        std::cout << "Final data:    ";
+        for (int i = 31; i >= 0; i--)
+        {
+            std::cout << store_data[i].value();
+        }
+        std::cout << "\n"
+                  << std::endl;
 
         data_memory->write(addr, store_data);
     }
@@ -227,6 +313,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     {
         alu_input_2.at(i) = bit(decoded.is_immediate).mux(rs2.at(i), rs2_imm.at(i));
     }
+    alu_input_2.print("alu input2: ");
 
     // 4. Main ALU Operation
     Register alu_result = execute_alu(rs1, alu_input_2, decoded.alu_op);
@@ -268,51 +355,19 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     Register mem_base(32);
     Register mem_addr_calc(32);
     add(mem_addr_calc, rs1, offset);
-    std::vector<bit> mem_addr = addr_to_bits(mem_addr_calc.get_data_uint(), data_memory->get_addr_bits());
+    std::vector<bit> mem_addr = mem_addr_calc.get_data();
+    //std::vector<bit> mem_addr = addr_to_bits(mem_addr_calc.get_data_uint() >> 2, data_memory->get_addr_bits());
 
-    Register load_result(32);
-    if (data_memory != nullptr && decoded.is_load)
-    {
-
-        // Decode load type from f3 bits
-        bit is_lb = ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
-        bit is_lh = ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
-        bit is_lw = ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
-        bit is_lbu = decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
-        bit is_lhu = decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
-        std::vector<bit> loaded_data = data_memory->read(mem_addr);
-        std::cout << "DEBUG: Loaded data bits: ";
-        for (int i = 7; i >= 0; i--)
-        {
-            std::cout << loaded_data[i].value();
-        }
-        std::cout << std::endl;
-
-        bit sign_bit_b = loaded_data[7];  // Sign bit for byte
-        bit sign_bit_h = loaded_data[15]; // Sign bit for halfword
-
-        for (size_t i = 0; i < 32; i++)
-        {
-            bit should_extend_b = (i >= 8) & is_lb.value();
-            bit should_extend_h = (i >= 16) & is_lh.value();
-
-            // Determine if this bit position should be loaded
-            bit keep_loading = ((is_lb | is_lbu) & (i < 8)) |  // Load byte
-                               ((is_lh | is_lhu) & (i < 16)) | // Load halfword
-                               (is_lw & (i < 32));             // Load word
-
-            // For sign extension
-            bit extended_value = (should_extend_b & sign_bit_b) |
-                                 (should_extend_h & sign_bit_h);
-
-            // Select between original data and sign-extended value
-            load_result.at(i) = keep_loading.mux(
-                extended_value,
-                loaded_data[i]);
-        }
-    }
+    //TODO WORD ADDRESING IS WRONG! IT SHOULD BE BYTE ADDRESSED MEMORY!
+    Register load_result = conditional_memory_read(decoded.is_load, mem_addr, decoded.f3_bits);
+    std::cout << "IS LOAD? " << decoded.is_load << std::endl;
 
     bit should_store(decoded.is_store);
+    rs2.print("RS2 for storing data: ");
+    rs1.print("RS1 for storing data (address): ");
+    mem_addr_calc.print("MEM ADDR CALC : ");
+    offset.print("Offset : ");
+
     conditional_memory_write(should_store, mem_addr, rs2.get_data(), decoded.f3_bits);
 
     // 9. Jump Handling
@@ -374,6 +429,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
 
     // 13. Register Write Back
     bit should_write_alu = ~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op);
+    cout<<"ALU? "<<should_write_alu.value()<<endl;
     bit should_write_load = bit(decoded.is_load);
     bit should_write_j = bit(decoded.is_jump);
     bit should_write_jalr = bit(decoded.is_jalr);
@@ -389,7 +445,11 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     conditional_register_write(should_write_j, decoded.rd, next_pc);
 
     // Write U-Type immediates for LUI, saves U-Imm on Reg[rd]
-    conditional_register_write(is_lui, decoded.rd, rs2_imm);
+
+    Register u_type_imm(decoded.imm_unsigned, 32);
+    conditional_register_write(is_lui, decoded.rd, u_type_imm);
+    std::cout << "is LUI? " << is_lui.value() << std::endl;
+    std::cout << "decoded.rd :" << decoded.rd << std::endl;
 
     // Write U-Type immediates for AUIPC, saves PC + U-Imm on Reg[rd]
     conditional_register_write(is_auipc, decoded.rd, new_auipc);

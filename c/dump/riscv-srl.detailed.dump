@@ -1,0 +1,296 @@
+
+bin/riscv-srl.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	80000137          	lui	sp,0x80000
+   4:	00000193          	li	gp,0
+   8:	00315233          	srl	tp,sp,gp
+   c:	00d00e93          	li	t4,13
+  10:	800000b7          	lui	ra,0x80000
+  14:	42121663          	bne	tp,ra,440 <_fail>
+  18:	80000137          	lui	sp,0x80000
+  1c:	00100193          	li	gp,1
+  20:	00315233          	srl	tp,sp,gp
+  24:	00e00e93          	li	t4,14
+  28:	400000b7          	lui	ra,0x40000
+  2c:	40121a63          	bne	tp,ra,440 <_fail>
+  30:	80000137          	lui	sp,0x80000
+  34:	00700193          	li	gp,7
+  38:	00315233          	srl	tp,sp,gp
+  3c:	00f00e93          	li	t4,15
+  40:	010000b7          	lui	ra,0x1000
+  44:	3e121e63          	bne	tp,ra,440 <_fail>
+  48:	80000137          	lui	sp,0x80000
+  4c:	00e00193          	li	gp,14
+  50:	00315233          	srl	tp,sp,gp
+  54:	01000e93          	li	t4,16
+  58:	000200b7          	lui	ra,0x20
+  5c:	3e121263          	bne	tp,ra,440 <_fail>
+  60:	80000137          	lui	sp,0x80000
+  64:	00110113          	addi	sp,sp,1 # 80000001 <__stack_top+0x7fffdc01>
+  68:	01f00193          	li	gp,31
+  6c:	00315233          	srl	tp,sp,gp
+  70:	01100e93          	li	t4,17
+  74:	00100093          	li	ra,1
+  78:	3c121463          	bne	tp,ra,440 <_fail>
+  7c:	fff00113          	li	sp,-1
+  80:	00000193          	li	gp,0
+  84:	00315233          	srl	tp,sp,gp
+  88:	01300e93          	li	t4,19
+  8c:	fff00093          	li	ra,-1
+  90:	3a121863          	bne	tp,ra,440 <_fail>
+  94:	fff00113          	li	sp,-1
+  98:	00100193          	li	gp,1
+  9c:	00315233          	srl	tp,sp,gp
+  a0:	01400e93          	li	t4,20
+  a4:	800000b7          	lui	ra,0x80000
+  a8:	fff08093          	addi	ra,ra,-1 # 7fffffff <__stack_top+0x7fffdbff>
+  ac:	38121a63          	bne	tp,ra,440 <_fail>
+  b0:	fff00113          	li	sp,-1
+  b4:	00700193          	li	gp,7
+  b8:	00315233          	srl	tp,sp,gp
+  bc:	01500e93          	li	t4,21
+  c0:	020000b7          	lui	ra,0x2000
+  c4:	fff08093          	addi	ra,ra,-1 # 1ffffff <__stack_top+0x1ffdbff>
+  c8:	36121c63          	bne	tp,ra,440 <_fail>
+  cc:	fff00113          	li	sp,-1
+  d0:	00e00193          	li	gp,14
+  d4:	00315233          	srl	tp,sp,gp
+  d8:	01600e93          	li	t4,22
+  dc:	000400b7          	lui	ra,0x40
+  e0:	fff08093          	addi	ra,ra,-1 # 3ffff <__stack_top+0x3dbff>
+  e4:	34121e63          	bne	tp,ra,440 <_fail>
+  e8:	fff00113          	li	sp,-1
+  ec:	01f00193          	li	gp,31
+  f0:	00315233          	srl	tp,sp,gp
+  f4:	01700e93          	li	t4,23
+  f8:	00100093          	li	ra,1
+  fc:	34121263          	bne	tp,ra,440 <_fail>
+ 100:	21212137          	lui	sp,0x21212
+ 104:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 108:	00000193          	li	gp,0
+ 10c:	00315233          	srl	tp,sp,gp
+ 110:	01900e93          	li	t4,25
+ 114:	212120b7          	lui	ra,0x21212
+ 118:	12108093          	addi	ra,ra,289 # 21212121 <__stack_top+0x2120fd21>
+ 11c:	32121263          	bne	tp,ra,440 <_fail>
+ 120:	21212137          	lui	sp,0x21212
+ 124:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 128:	00100193          	li	gp,1
+ 12c:	00315233          	srl	tp,sp,gp
+ 130:	01a00e93          	li	t4,26
+ 134:	109090b7          	lui	ra,0x10909
+ 138:	09008093          	addi	ra,ra,144 # 10909090 <__stack_top+0x10906c90>
+ 13c:	30121263          	bne	tp,ra,440 <_fail>
+ 140:	21212137          	lui	sp,0x21212
+ 144:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 148:	00700193          	li	gp,7
+ 14c:	00315233          	srl	tp,sp,gp
+ 150:	01b00e93          	li	t4,27
+ 154:	004240b7          	lui	ra,0x424
+ 158:	24208093          	addi	ra,ra,578 # 424242 <__stack_top+0x421e42>
+ 15c:	2e121263          	bne	tp,ra,440 <_fail>
+ 160:	21212137          	lui	sp,0x21212
+ 164:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 168:	00e00193          	li	gp,14
+ 16c:	00315233          	srl	tp,sp,gp
+ 170:	01c00e93          	li	t4,28
+ 174:	000080b7          	lui	ra,0x8
+ 178:	48408093          	addi	ra,ra,1156 # 8484 <__stack_top+0x6084>
+ 17c:	2c121263          	bne	tp,ra,440 <_fail>
+ 180:	21212137          	lui	sp,0x21212
+ 184:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 188:	01f00193          	li	gp,31
+ 18c:	00315233          	srl	tp,sp,gp
+ 190:	01d00e93          	li	t4,29
+ 194:	00000093          	li	ra,0
+ 198:	2a121463          	bne	tp,ra,440 <_fail>
+ 19c:	21212137          	lui	sp,0x21212
+ 1a0:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 1a4:	fe000193          	li	gp,-32
+ 1a8:	00315233          	srl	tp,sp,gp
+ 1ac:	02100e93          	li	t4,33
+ 1b0:	212120b7          	lui	ra,0x21212
+ 1b4:	12108093          	addi	ra,ra,289 # 21212121 <__stack_top+0x2120fd21>
+ 1b8:	28121463          	bne	tp,ra,440 <_fail>
+ 1bc:	21212137          	lui	sp,0x21212
+ 1c0:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 1c4:	fe100193          	li	gp,-31
+ 1c8:	00315233          	srl	tp,sp,gp
+ 1cc:	02200e93          	li	t4,34
+ 1d0:	109090b7          	lui	ra,0x10909
+ 1d4:	09008093          	addi	ra,ra,144 # 10909090 <__stack_top+0x10906c90>
+ 1d8:	26121463          	bne	tp,ra,440 <_fail>
+ 1dc:	21212137          	lui	sp,0x21212
+ 1e0:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 1e4:	fe700193          	li	gp,-25
+ 1e8:	00315233          	srl	tp,sp,gp
+ 1ec:	02300e93          	li	t4,35
+ 1f0:	004240b7          	lui	ra,0x424
+ 1f4:	24208093          	addi	ra,ra,578 # 424242 <__stack_top+0x421e42>
+ 1f8:	24121463          	bne	tp,ra,440 <_fail>
+ 1fc:	21212137          	lui	sp,0x21212
+ 200:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 204:	fee00193          	li	gp,-18
+ 208:	00315233          	srl	tp,sp,gp
+ 20c:	02400e93          	li	t4,36
+ 210:	000080b7          	lui	ra,0x8
+ 214:	48408093          	addi	ra,ra,1156 # 8484 <__stack_top+0x6084>
+ 218:	22121463          	bne	tp,ra,440 <_fail>
+ 21c:	21212137          	lui	sp,0x21212
+ 220:	12110113          	addi	sp,sp,289 # 21212121 <__stack_top+0x2120fd21>
+ 224:	fff00193          	li	gp,-1
+ 228:	00315233          	srl	tp,sp,gp
+ 22c:	02500e93          	li	t4,37
+ 230:	00000093          	li	ra,0
+ 234:	20121663          	bne	tp,ra,440 <_fail>
+ 238:	80000137          	lui	sp,0x80000
+ 23c:	00700193          	li	gp,7
+ 240:	00315133          	srl	sp,sp,gp
+ 244:	02b00e93          	li	t4,43
+ 248:	010000b7          	lui	ra,0x1000
+ 24c:	1e111a63          	bne	sp,ra,440 <_fail>
+ 250:	80000137          	lui	sp,0x80000
+ 254:	00e00193          	li	gp,14
+ 258:	003151b3          	srl	gp,sp,gp
+ 25c:	02c00e93          	li	t4,44
+ 260:	000200b7          	lui	ra,0x20
+ 264:	1c119e63          	bne	gp,ra,440 <_fail>
+ 268:	00700113          	li	sp,7
+ 26c:	00215133          	srl	sp,sp,sp
+ 270:	02d00e93          	li	t4,45
+ 274:	00000093          	li	ra,0
+ 278:	1c111463          	bne	sp,ra,440 <_fail>
+ 27c:	80000137          	lui	sp,0x80000
+ 280:	00700193          	li	gp,7
+ 284:	00315233          	srl	tp,sp,gp
+ 288:	00020393          	mv	t2,tp
+ 28c:	03300e93          	li	t4,51
+ 290:	010000b7          	lui	ra,0x1000
+ 294:	1a139663          	bne	t2,ra,440 <_fail>
+ 298:	80000137          	lui	sp,0x80000
+ 29c:	00e00193          	li	gp,14
+ 2a0:	00315233          	srl	tp,sp,gp
+ 2a4:	00000013          	nop
+ 2a8:	00020393          	mv	t2,tp
+ 2ac:	03400e93          	li	t4,52
+ 2b0:	000200b7          	lui	ra,0x20
+ 2b4:	18139663          	bne	t2,ra,440 <_fail>
+ 2b8:	80000137          	lui	sp,0x80000
+ 2bc:	01f00193          	li	gp,31
+ 2c0:	00315233          	srl	tp,sp,gp
+ 2c4:	00000013          	nop
+ 2c8:	00000013          	nop
+ 2cc:	00020393          	mv	t2,tp
+ 2d0:	03500e93          	li	t4,53
+ 2d4:	00100093          	li	ra,1
+ 2d8:	16139463          	bne	t2,ra,440 <_fail>
+ 2dc:	80000137          	lui	sp,0x80000
+ 2e0:	00700193          	li	gp,7
+ 2e4:	00315233          	srl	tp,sp,gp
+ 2e8:	03700e93          	li	t4,55
+ 2ec:	010000b7          	lui	ra,0x1000
+ 2f0:	14121863          	bne	tp,ra,440 <_fail>
+ 2f4:	80000137          	lui	sp,0x80000
+ 2f8:	00e00193          	li	gp,14
+ 2fc:	00000013          	nop
+ 300:	00315233          	srl	tp,sp,gp
+ 304:	03800e93          	li	t4,56
+ 308:	000200b7          	lui	ra,0x20
+ 30c:	12121a63          	bne	tp,ra,440 <_fail>
+ 310:	80000137          	lui	sp,0x80000
+ 314:	01f00193          	li	gp,31
+ 318:	00000013          	nop
+ 31c:	00000013          	nop
+ 320:	00315233          	srl	tp,sp,gp
+ 324:	03900e93          	li	t4,57
+ 328:	00100093          	li	ra,1
+ 32c:	10121a63          	bne	tp,ra,440 <_fail>
+ 330:	80000137          	lui	sp,0x80000
+ 334:	00000013          	nop
+ 338:	00700193          	li	gp,7
+ 33c:	00315233          	srl	tp,sp,gp
+ 340:	03a00e93          	li	t4,58
+ 344:	010000b7          	lui	ra,0x1000
+ 348:	0e121c63          	bne	tp,ra,440 <_fail>
+ 34c:	80000137          	lui	sp,0x80000
+ 350:	00000013          	nop
+ 354:	00e00193          	li	gp,14
+ 358:	00000013          	nop
+ 35c:	00315233          	srl	tp,sp,gp
+ 360:	03b00e93          	li	t4,59
+ 364:	000200b7          	lui	ra,0x20
+ 368:	0c121c63          	bne	tp,ra,440 <_fail>
+ 36c:	80000137          	lui	sp,0x80000
+ 370:	00000013          	nop
+ 374:	00000013          	nop
+ 378:	01f00193          	li	gp,31
+ 37c:	00315233          	srl	tp,sp,gp
+ 380:	03c00e93          	li	t4,60
+ 384:	00100093          	li	ra,1
+ 388:	0a121c63          	bne	tp,ra,440 <_fail>
+ 38c:	00700193          	li	gp,7
+ 390:	80000137          	lui	sp,0x80000
+ 394:	00315233          	srl	tp,sp,gp
+ 398:	03e00e93          	li	t4,62
+ 39c:	010000b7          	lui	ra,0x1000
+ 3a0:	0a121063          	bne	tp,ra,440 <_fail>
+ 3a4:	00e00193          	li	gp,14
+ 3a8:	80000137          	lui	sp,0x80000
+ 3ac:	00000013          	nop
+ 3b0:	00315233          	srl	tp,sp,gp
+ 3b4:	03f00e93          	li	t4,63
+ 3b8:	000200b7          	lui	ra,0x20
+ 3bc:	08121263          	bne	tp,ra,440 <_fail>
+ 3c0:	01f00193          	li	gp,31
+ 3c4:	80000137          	lui	sp,0x80000
+ 3c8:	00000013          	nop
+ 3cc:	00000013          	nop
+ 3d0:	00315233          	srl	tp,sp,gp
+ 3d4:	04000e93          	li	t4,64
+ 3d8:	00100093          	li	ra,1
+ 3dc:	06121263          	bne	tp,ra,440 <_fail>
+ 3e0:	00700193          	li	gp,7
+ 3e4:	00000013          	nop
+ 3e8:	80000137          	lui	sp,0x80000
+ 3ec:	00315233          	srl	tp,sp,gp
+ 3f0:	04100e93          	li	t4,65
+ 3f4:	010000b7          	lui	ra,0x1000
+ 3f8:	04121463          	bne	tp,ra,440 <_fail>
+ 3fc:	00e00193          	li	gp,14
+ 400:	00000013          	nop
+ 404:	80000137          	lui	sp,0x80000
+ 408:	00000013          	nop
+ 40c:	00315233          	srl	tp,sp,gp
+ 410:	04200e93          	li	t4,66
+ 414:	000200b7          	lui	ra,0x20
+ 418:	02121463          	bne	tp,ra,440 <_fail>
+ 41c:	01f00193          	li	gp,31
+ 420:	00000013          	nop
+ 424:	00000013          	nop
+ 428:	80000137          	lui	sp,0x80000
+ 42c:	00315233          	srl	tp,sp,gp
+ 430:	04300e93          	li	t4,67
+ 434:	00100093          	li	ra,1
+ 438:	00121463          	bne	tp,ra,440 <_fail>
+
+0000043c <_pass>:
+ 43c:	00100e93          	li	t4,1
+
+00000440 <_fail>:
+ 440:	00100113          	li	sp,1
+ 444:	015e9073          	csrw	seed,t4
+ 448:	00201063          	bne	zero,sp,448 <_fail+0x8>
+ 44c:	00000013          	nop
+ 450:	00000013          	nop
+ 454:	00000013          	nop
+ 458:	00000013          	nop
+ 45c:	00000013          	nop
+ 460:	00000013          	nop
+ 464:	00000013          	nop
+ 468:	00000013          	nop
+ 46c:	00000013          	nop
+ 470:	00000013          	nop

@@ -1,0 +1,46 @@
+
+bin/riscv-lb.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	00002117          	auipc	sp,0x2
+   4:	00010113          	mv	sp,sp
+   8:	00010203          	lb	tp,0(sp) # 2000 <tdata_0>
+   c:	00d00e93          	li	t4,13
+  10:	fef00093          	li	ra,-17
+  14:	00121463          	bne	tp,ra,1c <_fail>
+
+00000018 <_pass>:
+  18:	00100e93          	li	t4,1
+
+0000001c <_fail>:
+  1c:	00100113          	li	sp,1
+  20:	015e9073          	csrw	seed,t4
+  24:	00201063          	bne	zero,sp,24 <_fail+0x8>
+  28:	00000013          	nop
+  2c:	00000013          	nop
+  30:	00000013          	nop
+  34:	00000013          	nop
+  38:	00000013          	nop
+  3c:	00000013          	nop
+  40:	00000013          	nop
+  44:	00000013          	nop
+  48:	00000013          	nop
+  4c:	00000013          	nop
+  50:	0000                	.insn	2, 0x
+	...
+
+Disassembly of section .data:
+
+00002000 <tdata_0>:
+    2000:	deadbeef          	jal	t4,fffdd5ea <__stack_top+0xfffdb1da>
+
+00002004 <tdata_1>:
+    2004:	ef01                	.insn	2, 0xef01
+    2006:	abcd                	.insn	2, 0xabcd
+
+00002008 <tdata_2>:
+    2008:	0ff0                	.insn	2, 0x0ff0
+    200a:	0ff0                	.insn	2, 0x0ff0

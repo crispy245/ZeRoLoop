@@ -30,17 +30,9 @@ uint32_t Decoder::get_funct7(uint32_t instruction)
     return (instruction >> 25) & 0x7F; // bits 25-31
 }
 
-bool Decoder::compare_alu_ops(const std::vector<bit> &a, const std::vector<bit> &b)
-{
-    if (a.size() != b.size())
-        return false;
-    for (size_t i = 0; i < a.size(); i++)
-    {
-        if (a[i].value() != b[i].value())
-            return false;
-    }
-    return true;
-}
+
+
+// Sign extension is a procedure that depends solely fanning out certain bits, therefore no hardware cost is incurred.
 
 int32_t Decoder::get_imm_i(uint32_t instruction)
 {
@@ -92,7 +84,8 @@ int32_t Decoder::get_imm_j(uint32_t instruction)
         imm |= 0xFFE00000;
     return imm;
 }
-int32_t Decoder::get_imm_u(uint32_t instruction)
+
+uint32_t Decoder::get_imm_u(uint32_t instruction)
 {
     return (instruction & 0xFFFFF000); // imm[31:12]
 }
@@ -210,7 +203,6 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.is_bgeu = decoded.branch & decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
 
     // CSR operations
-
     decoded.is_csr_op = op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
 
     decoded.is_csrrw = decoded.is_csr_op & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
@@ -335,6 +327,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
         imm = get_imm_j(instruction);
     }
     decoded.imm = imm;
+    decoded.imm_unsigned = imm;
 
     return decoded;
 }

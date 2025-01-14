@@ -10,16 +10,18 @@ SECTIONS
 {
     /* All code goes to instruction memory */
     .text : {
+        . = ALIGN(4);
         *(.text._start)     
         *(.text*)           
         . = ALIGN(4);
     } > instruction_mem
-
-    .rodata : {
+    
+    /* Force rodata to start at data memory base */
+    .rodata ORIGIN(data_mem) : {
+        . = ALIGN(4);
         *(.rodata*)         
         . = ALIGN(4);
-    } > instruction_mem
-
+    } > data_mem
 
     .data : {
         . = ALIGN(4);

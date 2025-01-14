@@ -1,0 +1,113 @@
+
+bin/riscv-xori.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	ff010137          	lui	sp,0xff010
+   4:	f0010113          	addi	sp,sp,-256 # ff00ff00 <__stack_top+0xff00db00>
+   8:	f0f14213          	xori	tp,sp,-241
+   c:	00d00e93          	li	t4,13
+  10:	00ff00b7          	lui	ra,0xff0
+  14:	00f08093          	addi	ra,ra,15 # ff000f <__stack_top+0xfedc0f>
+  18:	14121263          	bne	tp,ra,15c <_fail>
+  1c:	0ff01137          	lui	sp,0xff01
+  20:	ff010113          	addi	sp,sp,-16 # ff00ff0 <__stack_top+0xfefebf0>
+  24:	0f014213          	xori	tp,sp,240
+  28:	00e00e93          	li	t4,14
+  2c:	0ff010b7          	lui	ra,0xff01
+  30:	f0008093          	addi	ra,ra,-256 # ff00f00 <__stack_top+0xfefeb00>
+  34:	12121463          	bne	tp,ra,15c <_fail>
+  38:	00ff0137          	lui	sp,0xff0
+  3c:	0ff10113          	addi	sp,sp,255 # ff00ff <__stack_top+0xfedcff>
+  40:	f0f14213          	xori	tp,sp,-241
+  44:	00f00e93          	li	t4,15
+  48:	ff0100b7          	lui	ra,0xff010
+  4c:	ff008093          	addi	ra,ra,-16 # ff00fff0 <__stack_top+0xff00dbf0>
+  50:	10121663          	bne	tp,ra,15c <_fail>
+  54:	f00ff137          	lui	sp,0xf00ff
+  58:	00f10113          	addi	sp,sp,15 # f00ff00f <__stack_top+0xf00fcc0f>
+  5c:	0f014213          	xori	tp,sp,240
+  60:	01000e93          	li	t4,16
+  64:	f00ff0b7          	lui	ra,0xf00ff
+  68:	0ff08093          	addi	ra,ra,255 # f00ff0ff <__stack_top+0xf00fccff>
+  6c:	0e121863          	bne	tp,ra,15c <_fail>
+  70:	ff010137          	lui	sp,0xff010
+  74:	f0010113          	addi	sp,sp,-256 # ff00ff00 <__stack_top+0xff00db00>
+  78:	f0f14113          	xori	sp,sp,-241
+  7c:	01600e93          	li	t4,22
+  80:	00ff00b7          	lui	ra,0xff0
+  84:	00f08093          	addi	ra,ra,15 # ff000f <__stack_top+0xfedc0f>
+  88:	0c111a63          	bne	sp,ra,15c <_fail>
+  8c:	0ff01137          	lui	sp,0xff01
+  90:	ff010113          	addi	sp,sp,-16 # ff00ff0 <__stack_top+0xfefebf0>
+  94:	0f014213          	xori	tp,sp,240
+  98:	00020393          	mv	t2,tp
+  9c:	01c00e93          	li	t4,28
+  a0:	0ff010b7          	lui	ra,0xff01
+  a4:	f0008093          	addi	ra,ra,-256 # ff00f00 <__stack_top+0xfefeb00>
+  a8:	0a139a63          	bne	t2,ra,15c <_fail>
+  ac:	00ff0137          	lui	sp,0xff0
+  b0:	0ff10113          	addi	sp,sp,255 # ff00ff <__stack_top+0xfedcff>
+  b4:	f0f14213          	xori	tp,sp,-241
+  b8:	00000013          	nop
+  bc:	00020393          	mv	t2,tp
+  c0:	01d00e93          	li	t4,29
+  c4:	ff0100b7          	lui	ra,0xff010
+  c8:	ff008093          	addi	ra,ra,-16 # ff00fff0 <__stack_top+0xff00dbf0>
+  cc:	08139863          	bne	t2,ra,15c <_fail>
+  d0:	f00ff137          	lui	sp,0xf00ff
+  d4:	00f10113          	addi	sp,sp,15 # f00ff00f <__stack_top+0xf00fcc0f>
+  d8:	0f014213          	xori	tp,sp,240
+  dc:	00000013          	nop
+  e0:	00000013          	nop
+  e4:	00020393          	mv	t2,tp
+  e8:	01e00e93          	li	t4,30
+  ec:	f00ff0b7          	lui	ra,0xf00ff
+  f0:	0ff08093          	addi	ra,ra,255 # f00ff0ff <__stack_top+0xf00fccff>
+  f4:	06139463          	bne	t2,ra,15c <_fail>
+  f8:	0ff01137          	lui	sp,0xff01
+  fc:	ff010113          	addi	sp,sp,-16 # ff00ff0 <__stack_top+0xfefebf0>
+ 100:	0f014213          	xori	tp,sp,240
+ 104:	02000e93          	li	t4,32
+ 108:	0ff010b7          	lui	ra,0xff01
+ 10c:	f0008093          	addi	ra,ra,-256 # ff00f00 <__stack_top+0xfefeb00>
+ 110:	04121663          	bne	tp,ra,15c <_fail>
+ 114:	00ff0137          	lui	sp,0xff0
+ 118:	0ff10113          	addi	sp,sp,255 # ff00ff <__stack_top+0xfedcff>
+ 11c:	00000013          	nop
+ 120:	f0f14213          	xori	tp,sp,-241
+ 124:	02100e93          	li	t4,33
+ 128:	ff0100b7          	lui	ra,0xff010
+ 12c:	ff008093          	addi	ra,ra,-16 # ff00fff0 <__stack_top+0xff00dbf0>
+ 130:	02121663          	bne	tp,ra,15c <_fail>
+ 134:	f00ff137          	lui	sp,0xf00ff
+ 138:	00f10113          	addi	sp,sp,15 # f00ff00f <__stack_top+0xf00fcc0f>
+ 13c:	00000013          	nop
+ 140:	00000013          	nop
+ 144:	0f014213          	xori	tp,sp,240
+ 148:	02200e93          	li	t4,34
+ 14c:	f00ff0b7          	lui	ra,0xf00ff
+ 150:	0ff08093          	addi	ra,ra,255 # f00ff0ff <__stack_top+0xf00fccff>
+ 154:	00121463          	bne	tp,ra,15c <_fail>
+
+00000158 <_pass>:
+ 158:	00100e93          	li	t4,1
+
+0000015c <_fail>:
+ 15c:	00100113          	li	sp,1
+ 160:	015e9073          	csrw	seed,t4
+ 164:	00201063          	bne	zero,sp,164 <_fail+0x8>
+ 168:	00000013          	nop
+ 16c:	00000013          	nop
+ 170:	00000013          	nop
+ 174:	00000013          	nop
+ 178:	00000013          	nop
+ 17c:	00000013          	nop
+ 180:	00000013          	nop
+ 184:	00000013          	nop
+ 188:	00000013          	nop
+ 18c:	00000013          	nop
+ 190:	0000                	.insn	2, 0x
+	...

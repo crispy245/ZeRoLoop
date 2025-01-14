@@ -24,12 +24,11 @@ private:
     uint32_t get_rs1(uint32_t instruction);
     uint32_t get_rs2(uint32_t instruction);
     uint32_t get_funct7(uint32_t instruction);
-    bool compare_alu_ops(const std::vector<bit>& a, const std::vector<bit>& b);
     int32_t get_imm_i(uint32_t instruction);
     int32_t get_imm_s(uint32_t instruction);
     int32_t get_imm_b(uint32_t instruction);
     int32_t get_imm_j(uint32_t instruction);
-    int32_t get_imm_u(uint32_t instruction);
+    uint32_t get_imm_u(uint32_t instruction);
 
 
 public:
@@ -103,6 +102,7 @@ public:
 
         // Immediate value and type flags
         int32_t imm;
+        uint32_t imm_unsigned;
         bit is_i_imm;
         bit is_s_imm;
         bit is_b_imm;

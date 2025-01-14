@@ -1,0 +1,107 @@
+
+bin/riscv-andi.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	ff010137          	lui	sp,0xff010
+   4:	f0010113          	addi	sp,sp,-256 # ff00ff00 <__stack_top+0xff00db00>
+   8:	f0f17213          	andi	tp,sp,-241
+   c:	00d00e93          	li	t4,13
+  10:	ff0100b7          	lui	ra,0xff010
+  14:	f0008093          	addi	ra,ra,-256 # ff00ff00 <__stack_top+0xff00db00>
+  18:	12121863          	bne	tp,ra,148 <_fail>
+  1c:	0ff01137          	lui	sp,0xff01
+  20:	ff010113          	addi	sp,sp,-16 # ff00ff0 <__stack_top+0xfefebf0>
+  24:	0f017213          	andi	tp,sp,240
+  28:	00e00e93          	li	t4,14
+  2c:	0f000093          	li	ra,240
+  30:	10121c63          	bne	tp,ra,148 <_fail>
+  34:	00ff0137          	lui	sp,0xff0
+  38:	0ff10113          	addi	sp,sp,255 # ff00ff <__stack_top+0xfedcff>
+  3c:	f0f17213          	andi	tp,sp,-241
+  40:	00f00e93          	li	t4,15
+  44:	00ff00b7          	lui	ra,0xff0
+  48:	00f08093          	addi	ra,ra,15 # ff000f <__stack_top+0xfedc0f>
+  4c:	0e121e63          	bne	tp,ra,148 <_fail>
+  50:	f00ff137          	lui	sp,0xf00ff
+  54:	00f10113          	addi	sp,sp,15 # f00ff00f <__stack_top+0xf00fcc0f>
+  58:	0f017213          	andi	tp,sp,240
+  5c:	01000e93          	li	t4,16
+  60:	00000093          	li	ra,0
+  64:	0e121263          	bne	tp,ra,148 <_fail>
+  68:	ff010137          	lui	sp,0xff010
+  6c:	f0010113          	addi	sp,sp,-256 # ff00ff00 <__stack_top+0xff00db00>
+  70:	0f017113          	andi	sp,sp,240
+  74:	01600e93          	li	t4,22
+  78:	00000093          	li	ra,0
+  7c:	0c111663          	bne	sp,ra,148 <_fail>
+  80:	0ff01137          	lui	sp,0xff01
+  84:	ff010113          	addi	sp,sp,-16 # ff00ff0 <__stack_top+0xfefebf0>
+  88:	f0f17213          	andi	tp,sp,-241
+  8c:	00020393          	mv	t2,tp
+  90:	01c00e93          	li	t4,28
+  94:	0ff010b7          	lui	ra,0xff01
+  98:	f0008093          	addi	ra,ra,-256 # ff00f00 <__stack_top+0xfefeb00>
+  9c:	0a139663          	bne	t2,ra,148 <_fail>
+  a0:	00ff0137          	lui	sp,0xff0
+  a4:	0ff10113          	addi	sp,sp,255 # ff00ff <__stack_top+0xfedcff>
+  a8:	0f017213          	andi	tp,sp,240
+  ac:	00000013          	nop
+  b0:	00020393          	mv	t2,tp
+  b4:	01d00e93          	li	t4,29
+  b8:	0f000093          	li	ra,240
+  bc:	08139663          	bne	t2,ra,148 <_fail>
+  c0:	f00ff137          	lui	sp,0xf00ff
+  c4:	00f10113          	addi	sp,sp,15 # f00ff00f <__stack_top+0xf00fcc0f>
+  c8:	f0f17213          	andi	tp,sp,-241
+  cc:	00000013          	nop
+  d0:	00000013          	nop
+  d4:	00020393          	mv	t2,tp
+  d8:	01e00e93          	li	t4,30
+  dc:	f00ff0b7          	lui	ra,0xf00ff
+  e0:	00f08093          	addi	ra,ra,15 # f00ff00f <__stack_top+0xf00fcc0f>
+  e4:	06139263          	bne	t2,ra,148 <_fail>
+  e8:	0ff01137          	lui	sp,0xff01
+  ec:	ff010113          	addi	sp,sp,-16 # ff00ff0 <__stack_top+0xfefebf0>
+  f0:	f0f17213          	andi	tp,sp,-241
+  f4:	02000e93          	li	t4,32
+  f8:	0ff010b7          	lui	ra,0xff01
+  fc:	f0008093          	addi	ra,ra,-256 # ff00f00 <__stack_top+0xfefeb00>
+ 100:	04121463          	bne	tp,ra,148 <_fail>
+ 104:	00ff0137          	lui	sp,0xff0
+ 108:	0ff10113          	addi	sp,sp,255 # ff00ff <__stack_top+0xfedcff>
+ 10c:	00000013          	nop
+ 110:	0f017213          	andi	tp,sp,240
+ 114:	02100e93          	li	t4,33
+ 118:	0f000093          	li	ra,240
+ 11c:	02121663          	bne	tp,ra,148 <_fail>
+ 120:	f00ff137          	lui	sp,0xf00ff
+ 124:	00f10113          	addi	sp,sp,15 # f00ff00f <__stack_top+0xf00fcc0f>
+ 128:	00000013          	nop
+ 12c:	00000013          	nop
+ 130:	f0f17213          	andi	tp,sp,-241
+ 134:	02200e93          	li	t4,34
+ 138:	f00ff0b7          	lui	ra,0xf00ff
+ 13c:	00f08093          	addi	ra,ra,15 # f00ff00f <__stack_top+0xf00fcc0f>
+ 140:	00121463          	bne	tp,ra,148 <_fail>
+
+00000144 <_pass>:
+ 144:	00100e93          	li	t4,1
+
+00000148 <_fail>:
+ 148:	00100113          	li	sp,1
+ 14c:	015e9073          	csrw	seed,t4
+ 150:	00201063          	bne	zero,sp,150 <_fail+0x8>
+ 154:	00000013          	nop
+ 158:	00000013          	nop
+ 15c:	00000013          	nop
+ 160:	00000013          	nop
+ 164:	00000013          	nop
+ 168:	00000013          	nop
+ 16c:	00000013          	nop
+ 170:	00000013          	nop
+ 174:	00000013          	nop
+ 178:	00000013          	nop
+	...

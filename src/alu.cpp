@@ -56,9 +56,10 @@ Register ALU::logical_shift_left(Register a, Register shift_amount)
     for (bigint i = 0; i < a.width(); i++)
     {
         bit shifted_bit = bit(0);
-
         bigint src_pos = i;
-        for (bigint j = 0; j < shift_amount.width(); j++)
+
+        // Only loop through the lower 5 bits of shift_amount
+        for (bigint j = 0; j < 5; j++) // Changed from shift_amount.width() to 5
         {
             if (shift_amount.at(j).value())
             {
@@ -149,6 +150,7 @@ Register ALU::compare_slt(Register a, Register b)
 
     // Perform subtraction
     subtract(sub_result, a, b);
+    sub_result.print("compare slt: ");
 
     // Copy sign bit to result[0], all other bits are initialized to 0
     result.at(0) = sub_result.at(a.width() - 1);
@@ -204,6 +206,7 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
     srl_result = logical_shift_right(a, b);
     sra_result = arithmetic_shift_right(a, b);
     slt_result = compare_slt(a, b);
+    slt_result.print("slt result");
     sltu_result = compare_sltu(a, b);
 
     for (bigint i = 0; i < a.width(); i++)
@@ -215,10 +218,10 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
 
     for (bigint i = 0; i < result.width(); i++)
     {
-        bit temp = result.at(i);
+        bit temp = slt_result.at(i); // Start with SLT result
 
+        // Then do other muxes only if their select signals are high
         temp = is_sltu.mux(temp, sltu_result.at(i));
-        temp = is_slt.mux(temp, slt_result.at(i));
         temp = is_sra.mux(temp, sra_result.at(i));
         temp = is_srl.mux(temp, srl_result.at(i));
         temp = is_sll.mux(temp, sll_result.at(i));
@@ -230,6 +233,7 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
 
         result.at(i) = temp;
     }
+    result.print("alu result is: ");
 
     return result;
 }

@@ -80,6 +80,7 @@ void load_instructions(RAM *instruction_memory, char *file_location)
 
             current_addr += 4;
         }
+        std::cout << "Raw line: " << line << std::endl;
     }
 }
 
@@ -89,7 +90,7 @@ void test_full_system(char *instr_location)
     std::cout << "\n=== Testing RISC-V CPU Implementation ===\n";
 
     // Initialize memories
-    RAM instruction_memory(8192, 32);
+    RAM instruction_memory(16384, 32); //unified, should thread carefully here
     RAM data_memory(8192, 32);
 
     // Helper functions
@@ -110,7 +111,7 @@ void test_full_system(char *instr_location)
 
     // Initialize first CPU state
     ZeroLoop *currentCPU = new ZeroLoop();
-    currentCPU->connect_memories(&instruction_memory, &data_memory);
+    currentCPU->connect_memories(&instruction_memory, &instruction_memory);
 
     // Execute program cycle by cycle
     while (true)
@@ -126,7 +127,7 @@ void test_full_system(char *instr_location)
 
         // Create next CPU state
         ZeroLoop *nextCPU = new ZeroLoop();
-        nextCPU->connect_memories(&instruction_memory, &data_memory);
+        nextCPU->connect_memories(&instruction_memory, &instruction_memory);
         nextCPU->copy_state_from(*currentCPU);
 
         // Fetch instruction using current PC

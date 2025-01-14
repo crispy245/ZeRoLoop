@@ -1,0 +1,67 @@
+
+bin/riscv-lui.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	00000113          	li	sp,0
+   4:	00000137          	lui	sp,0x0
+   8:	00d00e93          	li	t4,13
+   c:	00000093          	li	ra,0
+  10:	08111c63          	bne	sp,ra,a8 <_fail>
+  14:	00000113          	li	sp,0
+  18:	fffff137          	lui	sp,0xfffff
+  1c:	00e00e93          	li	t4,14
+  20:	fffff0b7          	lui	ra,0xfffff
+  24:	08111263          	bne	sp,ra,a8 <_fail>
+  28:	00000113          	li	sp,0
+  2c:	7ffff137          	lui	sp,0x7ffff
+  30:	00f00e93          	li	t4,15
+  34:	7ffff0b7          	lui	ra,0x7ffff
+  38:	06111863          	bne	sp,ra,a8 <_fail>
+  3c:	00000113          	li	sp,0
+  40:	80000137          	lui	sp,0x80000
+  44:	01000e93          	li	t4,16
+  48:	800000b7          	lui	ra,0x80000
+  4c:	04111e63          	bne	sp,ra,a8 <_fail>
+  50:	00000113          	li	sp,0
+  54:	fffff137          	lui	sp,0xfffff
+  58:	00010193          	mv	gp,sp
+  5c:	01600e93          	li	t4,22
+  60:	fffff0b7          	lui	ra,0xfffff
+  64:	04119263          	bne	gp,ra,a8 <_fail>
+  68:	00000113          	li	sp,0
+  6c:	7ffff137          	lui	sp,0x7ffff
+  70:	00000013          	nop
+  74:	00010193          	mv	gp,sp
+  78:	01700e93          	li	t4,23
+  7c:	7ffff0b7          	lui	ra,0x7ffff
+  80:	02119463          	bne	gp,ra,a8 <_fail>
+  84:	00000113          	li	sp,0
+  88:	80000137          	lui	sp,0x80000
+  8c:	00000013          	nop
+  90:	00000013          	nop
+  94:	00010193          	mv	gp,sp
+  98:	01800e93          	li	t4,24
+  9c:	800000b7          	lui	ra,0x80000
+  a0:	00119463          	bne	gp,ra,a8 <_fail>
+
+000000a4 <_pass>:
+  a4:	00100e93          	li	t4,1
+
+000000a8 <_fail>:
+  a8:	00100113          	li	sp,1
+  ac:	015e9073          	csrw	seed,t4
+  b0:	00201063          	bne	zero,sp,b0 <_fail+0x8>
+  b4:	00000013          	nop
+  b8:	00000013          	nop
+  bc:	00000013          	nop
+  c0:	00000013          	nop
+  c4:	00000013          	nop
+  c8:	00000013          	nop
+  cc:	00000013          	nop
+  d0:	00000013          	nop
+  d4:	00000013          	nop
+  d8:	00000013          	nop
+	...

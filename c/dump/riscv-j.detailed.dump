@@ -1,0 +1,43 @@
+
+bin/riscv-j.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	00d00e93          	li	t4,13
+   4:	0080006f          	j	c <test>
+   8:	0340006f          	j	3c <_fail>
+
+0000000c <test>:
+   c:	00100113          	li	sp,1
+  10:	0140006f          	j	24 <test+0x18>
+  14:	00110113          	addi	sp,sp,1
+  18:	00110113          	addi	sp,sp,1
+  1c:	00110113          	addi	sp,sp,1
+  20:	00110113          	addi	sp,sp,1
+  24:	00110113          	addi	sp,sp,1
+  28:	00110113          	addi	sp,sp,1
+  2c:	01e00e93          	li	t4,30
+  30:	00300093          	li	ra,3
+  34:	00111463          	bne	sp,ra,3c <_fail>
+
+00000038 <_pass>:
+  38:	00100e93          	li	t4,1
+
+0000003c <_fail>:
+  3c:	00100113          	li	sp,1
+  40:	015e9073          	csrw	seed,t4
+  44:	00201063          	bne	zero,sp,44 <_fail+0x8>
+  48:	00000013          	nop
+  4c:	00000013          	nop
+  50:	00000013          	nop
+  54:	00000013          	nop
+  58:	00000013          	nop
+  5c:	00000013          	nop
+  60:	00000013          	nop
+  64:	00000013          	nop
+  68:	00000013          	nop
+  6c:	00000013          	nop
+  70:	0000                	.insn	2, 0x
+	...

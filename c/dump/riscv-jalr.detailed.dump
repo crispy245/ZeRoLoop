@@ -1,0 +1,91 @@
+
+bin/riscv-jalr.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	00e00e93          	li	t4,14
+   4:	00000f93          	li	t6,0
+   8:	00000197          	auipc	gp,0x0
+   c:	01c18193          	addi	gp,gp,28 # 24 <target_0>
+
+00000010 <linkaddr_0>:
+  10:	00018867          	jalr	a6,gp
+  14:	00000013          	nop
+  18:	00000013          	nop
+  1c:	01600e93          	li	t4,22
+  20:	0a0e9e63          	bnez	t4,dc <_fail>
+
+00000024 <target_0>:
+  24:	00000117          	auipc	sp,0x0
+  28:	fec10113          	addi	sp,sp,-20 # 10 <linkaddr_0>
+  2c:	00410113          	addi	sp,sp,4
+  30:	0b011663          	bne	sp,a6,dc <_fail>
+
+00000034 <test_1>:
+  34:	02200e93          	li	t4,34
+  38:	00000f93          	li	t6,0
+  3c:	00000197          	auipc	gp,0x0
+  40:	01c18193          	addi	gp,gp,28 # 58 <target_1>
+
+00000044 <linkaddr_1>:
+  44:	00018067          	jr	gp
+  48:	00000013          	nop
+  4c:	00000013          	nop
+  50:	02a00e93          	li	t4,42
+  54:	080e9463          	bnez	t4,dc <_fail>
+
+00000058 <target_1>:
+  58:	09f01263          	bne	zero,t6,dc <_fail>
+  5c:	00000117          	auipc	sp,0x0
+  60:	01410113          	addi	sp,sp,20 # 70 <target_1+0x18>
+  64:	000101e7          	jalr	gp,sp
+  68:	03300e93          	li	t4,51
+  6c:	060e9863          	bnez	t4,dc <_fail>
+  70:	00000117          	auipc	sp,0x0
+  74:	01810113          	addi	sp,sp,24 # 88 <target_1+0x30>
+  78:	00000013          	nop
+  7c:	000101e7          	jalr	gp,sp
+  80:	03400e93          	li	t4,52
+  84:	040e9c63          	bnez	t4,dc <_fail>
+  88:	00000117          	auipc	sp,0x0
+  8c:	01c10113          	addi	sp,sp,28 # a4 <target_1+0x4c>
+  90:	00000013          	nop
+  94:	00000013          	nop
+  98:	000101e7          	jalr	gp,sp
+  9c:	03500e93          	li	t4,53
+  a0:	020e9e63          	bnez	t4,dc <_fail>
+  a4:	00100113          	li	sp,1
+  a8:	00000197          	auipc	gp,0x0
+  ac:	01c18193          	addi	gp,gp,28 # c4 <target_1+0x6c>
+  b0:	00018867          	jalr	a6,gp
+  b4:	00110113          	addi	sp,sp,1
+  b8:	00110113          	addi	sp,sp,1
+  bc:	00110113          	addi	sp,sp,1
+  c0:	00110113          	addi	sp,sp,1
+  c4:	00110113          	addi	sp,sp,1
+  c8:	00110113          	addi	sp,sp,1
+  cc:	04400e93          	li	t4,68
+  d0:	00300093          	li	ra,3
+  d4:	00111463          	bne	sp,ra,dc <_fail>
+
+000000d8 <_pass>:
+  d8:	00100e93          	li	t4,1
+
+000000dc <_fail>:
+  dc:	00100113          	li	sp,1
+  e0:	015e9073          	csrw	seed,t4
+  e4:	00201063          	bne	zero,sp,e4 <_fail+0x8>
+  e8:	00000013          	nop
+  ec:	00000013          	nop
+  f0:	00000013          	nop
+  f4:	00000013          	nop
+  f8:	00000013          	nop
+  fc:	00000013          	nop
+ 100:	00000013          	nop
+ 104:	00000013          	nop
+ 108:	00000013          	nop
+ 10c:	00000013          	nop
+ 110:	0000                	.insn	2, 0x
+	...

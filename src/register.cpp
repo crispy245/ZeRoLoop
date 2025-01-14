@@ -23,7 +23,7 @@ Register::Register(bigint value, size_t width) : data(width, bit(0))
     }
 }
 
-Register::Register(uint32_t value, size_t width) : data(width, bit(0))
+Register::Register(int32_t value, size_t width) : data(width, bit(0))
 {
     std::vector<bit> value_bits = bit_vector_from_int32(value);
     for (size_t i = 0; i < width && i < value_bits.size(); i++)
@@ -37,6 +37,13 @@ Register::Register(uint32_t value, size_t width) : data(width, bit(0))
         {
             data[i] = bit(1);
         }
+    }
+}
+
+Register::Register(uint32_t value, size_t width) : data(width, bit(0)) {
+    std::vector<bit> value_bits = bit_vector_from_int32(value);
+    for (size_t i = 0; i < width && i < value_bits.size(); i++) {
+        data[i] = value_bits[i];
     }
 }
 

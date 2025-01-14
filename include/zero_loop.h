@@ -72,6 +72,7 @@ public:
     void conditional_pc_jump(const bit &should_jump, const Register &target);
     void conditional_pc_increment(const bit &should_increment, const Register &offset);
     void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits);
+    Register conditional_memory_read(const bit &should_read, const std::vector<bit> &addr, std::vector<bit> f3_bits);
     void conditional_register_write(const bit &should_write, size_t rd, const Register &data);
     void conditional_csr_write(const bit &should_write, size_t csr_pos, const Register &data);
  
