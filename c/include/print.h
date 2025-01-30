@@ -63,14 +63,4 @@ static inline void print_int(int num) {
     }
 }
 
-static inline void exit(int code)
-{
-    asm volatile(
-        "li a7, %1\n\t" // Syscall number for exit
-        "mv a0, %0\n\t" // Exit code in a0
-        "ecall"
-        :
-        : "r"(code), "i"(SYS_EXIT)
-        : "a0", "a7");
-}
 

@@ -35,7 +35,7 @@ public:
     struct DecodedInstruction {
         // Register fields
         size_t rs1 = 0;
-        size_t rs2 = 0;
+        size_t rs2 = 0; 
         size_t rd = 0;
 
         // Control signals as individual bits

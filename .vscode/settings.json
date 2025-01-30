@@ -65,6 +65,11 @@
         "decoder.h": "c",
         "zero_loop.h": "c",
         "span": "c",
-        "print.h": "c"
+        "print.h": "c",
+        "register.h": "c",
+        "c_headers.h": "c",
+        "alu.h": "c",
+        "ram_cpu.h": "c",
+        "cinttypes": "cpp"
     }
 }

@@ -1,5 +1,4 @@
 #include "zero_loop.h"
-#include <iostream>
 
 Register ZeroLoop::read_register(size_t pos)
 {
@@ -142,55 +141,136 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
 
     if (should_read.value() && data_memory != nullptr)
     {
+        // Convert byte address to uint32_t
+        uint32_t byte_addr_uint = 0;
+        for (size_t i = 0; i < addr.size() && i < 32; ++i)
+        {
+            if (addr[i].value())
+            {
+                byte_addr_uint |= (1 << i);
+            }
+        }
+        byte_addr_uint = byte_addr_uint - 8192; // horrible code sorry
+        uint32_t word_addr_uint = byte_addr_uint >> 2;
+        uint32_t offset = byte_addr_uint & 0x3;
+
         // Decode funct3
-        bit is_lb = ~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0]; // 000
-        bit is_lh = ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];  // 001
-        bit is_lw = ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];  // 010
-        bit is_lbu = f3_bits[2] & ~f3_bits[1] & ~f3_bits[0]; // 100
-        bit is_lhu = f3_bits[2] & ~f3_bits[1] & f3_bits[0];  // 101
+        bool is_lb = (~f3_bits[2] & ~f3_bits[1] & ~f3_bits[0]).value();
+        bool is_lh = (~f3_bits[2] & ~f3_bits[1] & f3_bits[0]).value();
+        bool is_lw = (~f3_bits[2] & f3_bits[1] & ~f3_bits[0]).value();
+        bool is_lbu = (f3_bits[2] & ~f3_bits[1] & ~f3_bits[0]).value();
+        bool is_lhu = (f3_bits[2] & ~f3_bits[1] & f3_bits[0]).value();
 
-        std::cout << "LOAD addr : ";
-        for (int i = addr.size() - 1; i >= 0; i--)
+        // Read primary word
+        std::vector<bit> word_addr = addr_to_bits(word_addr_uint, data_memory->get_addr_bits());
+        std::vector<bit> word_data = data_memory->read(word_addr);
+
+        // Read next word if needed
+        std::vector<bit> next_word_data;
+        bool read_next = (is_lw && offset != 0) || ((is_lh || is_lhu) && offset == 3);
+        if (read_next)
         {
-            std::cout << addr[i].value();
+            uint32_t next_word_addr_uint = word_addr_uint + 1;
+            std::vector<bit> next_word_addr = addr_to_bits(next_word_addr_uint, data_memory->get_addr_bits());
+            next_word_data = data_memory->read(next_word_addr);
         }
-        std::cout << endl;
 
-        // Get memory data
-        std::vector<bit> mem_data = data_memory->read(addr);
-        cout<<"Mem data: ";
-        for(int i = mem_data.size(); i >= 0; i--){
-            cout<<mem_data[i].value();
-        }
-        cout<<endl;
-
-        // Determine sign extension based on load type
-        bit sign_byte = is_lb.mux(bit(0), mem_data[7]);
-        bit sign_half = is_lh.mux(bit(0), mem_data[15]);
-        std::cout<<"Sign byte is : "<<sign_byte.value()<<endl;
-
-        // Process each bit
-        for (int i = 0; i < 32; i++)
+        // Extract relevant bytes
+        std::vector<bit> mem_data(32, bit(0));
+        if (is_lb || is_lbu)
         {
-            bit keep_byte = (is_lb | is_lbu) & (i < 8);
-            bit keep_half = (is_lh | is_lhu) & (i < 16);
-            bit keep_word = is_lw & (i < 32);
-
-            bit should_extend_byte = is_lb & (i >= 8) & sign_byte;
-            bit should_extend_half = is_lh & (i >= 16) & sign_half;
-
-            bit keep_storing = keep_byte | keep_half |keep_word;
-            cout<<"keep_byte :"<<keep_byte.value();
-
-            result.at(i) = keep_storing.mux(0,mem_data[i]);
-            result.at(i) = should_extend_byte.mux(result.at(i), sign_byte);
-            result.at(i) = should_extend_half.mux(result.at(i), sign_half);
-
+            // Byte load
+            size_t start_bit = offset * 8;
+            for (size_t i = 0; i < 8 && (start_bit + i) < word_data.size(); ++i)
+            {
+                mem_data[i] = word_data[start_bit + i];
+            }
+            // Sign extend for lb
+            if (is_lb)
+            {
+                bit sign = mem_data[7];
+                for (size_t i = 8; i < 32; ++i)
+                {
+                    mem_data[i] = sign;
+                }
+            }
         }
+        else if (is_lh || is_lhu)
+        {
+            // Half-word load
+            if (offset <= 2)
+            {
+                size_t start_bit = offset * 8;
+                for (size_t i = 0; i < 16 && (start_bit + i) < word_data.size(); ++i)
+                {
+                    mem_data[i] = word_data[start_bit + i];
+                }
+            }
+            else
+            {
+                // Combine last byte of current word and first byte of next word
+                for (size_t i = 0; i < 8; ++i)
+                {
+                    mem_data[i] = word_data[24 + i];     // Byte 3 of current word
+                    mem_data[i + 8] = next_word_data[i]; // Byte 0 of next word
+                }
+            }
+            // Sign extend for lh
+            if (is_lh)
+            {
+                bit sign = mem_data[15];
+                for (size_t i = 16; i < 32; ++i)
+                {
+                    mem_data[i] = sign;
+                }
+            }
+        }
+        else if (is_lw)
+        {
+            // Word load
+            if (offset == 0)
+            {
+                mem_data = word_data;
+            }
+            else
+            {
+                // Combine parts from current and next word
+                switch (offset)
+                {
+                case 1:
+                    for (int i = 0; i < 24; ++i)
+                        mem_data[i] = word_data[i + 8];
+                    for (int i = 0; i < 8; ++i)
+                        mem_data[24 + i] = next_word_data[i];
+                    break;
+                case 2:
+                    for (int i = 0; i < 16; ++i)
+                        mem_data[i] = word_data[i + 16];
+                    for (int i = 0; i < 16; ++i)
+                        mem_data[16 + i] = next_word_data[i];
+                    break;
+                case 3:
+                    for (int i = 0; i < 8; ++i)
+                        mem_data[i] = word_data[i + 24];
+                    for (int i = 0; i < 24; ++i)
+                        mem_data[8 + i] = next_word_data[i];
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+
+        // Assign mem_data to result
+        for (int i = 0; i < 32; ++i)
+        {
+            result.at(i) = mem_data[i];
+        }
+
     }
-    result.print("Loaded data : ");
     return result;
 }
+
 
 void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits)
 {
@@ -198,50 +278,86 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
     bit is_sh = ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];
     bit is_sw = ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];
 
-    if (should_write.value() && data_memory != nullptr)
-    {
-        std::cout << "STORING: " << std::endl;
-        std::cout << "STORE addr : ";
-        for (int i = addr.size() - 1; i >= 0; i--)
-        {
-            std::cout << addr[i].value();
+    if (should_write.value() && data_memory != nullptr) {
+        // Convert byte address to uint32_t
+        uint32_t byte_addr_uint = 0;
+        for (size_t i = 0; i < addr.size() && i < 32; ++i) {
+            if (addr[i].value()) {
+                byte_addr_uint |= (1 << i);
+            }
         }
-        std::cout << std::endl;
 
-        std::vector<bit> original_data = data_memory->read(addr);
-        std::cout << "Original data: ";
-        for (int i = 31; i >= 0; i--)
-        {
-            std::cout << original_data[i].value();
+        // Adjust for data memory base address (e.g., 0x2000)
+        byte_addr_uint = byte_addr_uint - 8192;
+
+        // Calculate word address and byte offset
+        uint32_t word_addr_uint = byte_addr_uint >> 2;
+        uint32_t offset = byte_addr_uint & 0x3;
+
+        // Convert word address to bits
+        std::vector<bit> word_addr = addr_to_bits(word_addr_uint, data_memory->get_addr_bits());
+        
+        // Read current word from memory
+        std::vector<bit> current_word = data_memory->read(word_addr);
+        std::vector<bit> next_word;
+        bool write_next_word = false;
+
+        // Handle unaligned accesses that cross word boundaries
+        if ((is_sh.value() && offset == 3) || (is_sw.value() && offset != 0)) {
+            next_word = data_memory->read(addr_to_bits(word_addr_uint + 1, data_memory->get_addr_bits()));
+            write_next_word = true;
         }
-        std::cout << std::endl;
 
-        std::cout << "Input data:    ";
-        for (int i = 31; i >= 0; i--)
-        {
-            std::cout << data[i].value();
+        // Merge new data into current word
+        if (is_sb.value()) {
+            // Store byte: replace relevant 8 bits
+            size_t start_bit = offset * 8;
+            for (size_t i = 0; i < 8; ++i) {
+                if (start_bit + i < current_word.size()) {
+                    current_word[start_bit + i] = data[i];
+                }
+            }
         }
-        std::cout << std::endl;
-
-        std::vector<bit> store_data(32);
-        std::cout << "Keep bits:     ";
-        for (int i = 0; i < 31; i++)
-        {
-            bit keep_storing = ((is_sb.value() & (i < 8)) || (is_sh.value() & (i < 16)) || (is_sw.value() & (i < 32)));
-            std::cout << keep_storing.value();
-            store_data[i] = keep_storing.mux(original_data[i], data[i]);
+        else if (is_sh.value()) {
+            // Store halfword: replace relevant 16 bits
+            if (offset <= 2) {
+                size_t start_bit = offset * 8;
+                for (size_t i = 0; i < 16; ++i) {
+                    if (start_bit + i < current_word.size()) {
+                        current_word[start_bit + i] = data[i];
+                    }
+                }
+            } else {
+                // Handle cross-word boundary
+                for (size_t i = 0; i < 8; ++i) {
+                    current_word[24 + i] = data[i];     // Last byte of current word
+                    next_word[i] = data[i + 8];         // First byte of next word
+                }
+                write_next_word = true;
+            }
         }
-        std::cout << std::endl;
-
-        std::cout << "Final data:    ";
-        for (int i = 31; i >= 0; i--)
-        {
-            std::cout << store_data[i].value();
+        else if (is_sw.value()) {
+            // Store word
+            if (offset == 0) {
+                current_word = data;
+            } else {
+                // Handle unaligned word storage
+                size_t bits_in_current = (4 - offset) * 8;
+                for (size_t i = 0; i < bits_in_current; ++i) {
+                    current_word[offset * 8 + i] = data[i];
+                }
+                for (size_t i = 0; i < (32 - bits_in_current); ++i) {
+                    next_word[i] = data[bits_in_current + i];
+                }
+                write_next_word = true;
+            }
         }
-        std::cout << "\n"
-                  << std::endl;
 
-        data_memory->write(addr, store_data);
+        // Write modified words back to memory
+        data_memory->write(word_addr, current_word);
+        if (write_next_word) {
+            data_memory->write(addr_to_bits(word_addr_uint + 1, data_memory->get_addr_bits()), next_word);
+        }
     }
 }
 
@@ -268,12 +384,9 @@ const uint32_t ZeroLoop::get_csr_21()
 
 void ZeroLoop::handle_syscall()
 {
-    std::cout << "PRINT" << std::endl;
     // Get syscall number from a7 (x17)
     Register a7 = read_register(17); // a7 is x17
     Register a0 = read_register(10); // a0 is x10
-    std::cout << "DEBUG: Before syscall - PC=0x" << pc.read_pc() << std::endl;
-    std::cout << "DEBUG: a0='" << (char)register_to_int_internal(a0) << "'" << std::endl;
 
     int syscall_num = register_to_int_internal(a7);
 
@@ -296,6 +409,25 @@ void ZeroLoop::handle_syscall()
     }
 }
 
+Register sign_extend_offset(int32_t offset, size_t bits)
+{
+    Register result(32);
+    int32_t sign_bit = (offset >> (bits - 1)) & 1; // Extract the sign bit
+
+    // Fill the lower 'bits' with the offset value
+    for (size_t i = 0; i < bits; ++i)
+    {
+        result.at(i) = bit((offset >> i) & 1);
+    }
+    // Sign extend the higher bits
+    for (size_t i = bits; i < 32; ++i)
+    {
+        result.at(i) = bit(sign_bit);
+    }
+
+    return result;
+}
+
 void ZeroLoop::execute_instruction(uint32_t instruction)
 {
     auto decoded = decoder.decode(instruction);
@@ -313,7 +445,6 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     {
         alu_input_2.at(i) = bit(decoded.is_immediate).mux(rs2.at(i), rs2_imm.at(i));
     }
-    alu_input_2.print("alu input2: ");
 
     // 4. Main ALU Operation
     Register alu_result = execute_alu(rs1, alu_input_2, decoded.alu_op);
@@ -342,38 +473,30 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     bit bltu_taken = decoded.is_bltu & ~is_greater_unsigned;
     bit bgeu_taken = decoded.is_bgeu & is_greater_unsigned;
 
-    std::cout << "BEQ? :" << decoded.is_beq.value() << " is zero? : " << is_zero.value() << std::endl;
-    std::cout << "BNE? :" << decoded.is_bne.value() << " is not zero? : " << is_not_zero.value() << std::endl;
-    std::cout << "BLT? :" << decoded.is_blt.value() << " is negative? : " << is_negative.value() << std::endl;
-    std::cout << "BGE? :" << decoded.is_bge.value() << " is not negative? : " << (!is_negative.value()) << std::endl;
-    std::cout << "BLTU? :" << decoded.is_bltu.value() << " is not greater unsigned? : " << (!is_greater_unsigned.value()) << std::endl;
-    std::cout << "BGEU? :" << decoded.is_bgeu.value() << " is greater unsigned? : " << is_greater_unsigned.value() << std::endl;
-
     bit should_branch = (beq_taken | bne_taken | blt_taken | bge_taken | bltu_taken | bgeu_taken) & bit(decoded.is_branch);
 
-    // 7. Memory Address Calculation
     Register mem_base(32);
     Register mem_addr_calc(32);
     add(mem_addr_calc, rs1, offset);
     std::vector<bit> mem_addr = mem_addr_calc.get_data();
-    //std::vector<bit> mem_addr = addr_to_bits(mem_addr_calc.get_data_uint() >> 2, data_memory->get_addr_bits());
+    // std::vector<bit> mem_addr = addr_to_bits(mem_addr_calc.get_data_uint() >> 2, data_memory->get_addr_bits());
 
-    //TODO WORD ADDRESING IS WRONG! IT SHOULD BE BYTE ADDRESSED MEMORY!
+    // TODO WORD ADDRESING IS WRONG! IT SHOULD BE BYTE ADDRESSED MEMORY!
     Register load_result = conditional_memory_read(decoded.is_load, mem_addr, decoded.f3_bits);
-    std::cout << "IS LOAD? " << decoded.is_load << std::endl;
 
     bit should_store(decoded.is_store);
-    rs2.print("RS2 for storing data: ");
-    rs1.print("RS1 for storing data (address): ");
-    mem_addr_calc.print("MEM ADDR CALC : ");
-    offset.print("Offset : ");
 
     conditional_memory_write(should_store, mem_addr, rs2.get_data(), decoded.f3_bits);
 
     // 9. Jump Handling
-    Register jalr_target(32);
-    add(jalr_target, rs1, offset);
-    jalr_target.at(0) = bit(0); // Clear least significant bit for JALR
+
+    // Calculate JALR target as byte address and clear LSB
+    Register jalr_target_byte(32);
+    add(jalr_target_byte, rs1, offset);
+    jalr_target_byte.at(0) = bit(0); // Clear least significant bit for JALR
+    // Convert to word address
+    uint32_t jalr_target_word_val = jalr_target_byte.get_data_uint() >> 2;
+    Register jalr_target_word(jalr_target_word_val, 32);
 
     bit should_jalr = bit(decoded.is_jalr);
     bit should_jal = bit(decoded.jal.value());
@@ -383,9 +506,21 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
 
     // 10. PC Update
     Register pc_val(pc.read_pc(), 32);
-    Register four(4, 32);
+    Register pc_val_byte_addr(pc_val.get_data_uint() << 2, 32); // Byte-aligned PC
+    Register plus_1(1, 32);
     Register next_pc(32);
-    add(next_pc, pc_val, four);
+    Register next_pc_word(32); // Next PC in word addressing (PC + 1)
+    add(next_pc, pc_val, plus_1);
+    add(next_pc_word, pc_val, plus_1);
+
+    Register return_addr_byte(32);
+    for (int i = 0; i < 32; i++)
+    {
+        if (i >= 2)
+            return_addr_byte.at(i) = next_pc_word.at(i - 2);
+        else
+            return_addr_byte.at(i) = bit(0);
+    }
 
     // Print syscall
     if (instruction == 0x00000073)
@@ -395,17 +530,26 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
         return;
     }
 
-    Register branch_target(32);
-    add(branch_target, pc_val, offset);
+    // Calculate Branch targets as byte address
+    Register branch_target_byte(32);
+    add(branch_target_byte, pc_val_byte_addr, offset);
+    // Convert to word address
+    uint32_t branch_target_word_val = branch_target_byte.get_data_uint() >> 2;
+    Register branch_target_word(branch_target_word_val, 32);
 
-    Register jal_target(32);
-    add(jal_target, pc_val, rs2_imm);
+    // Calculate JAL target as byte address
+    Register jal_target_byte(32);
+    add(jal_target_byte, pc_val_byte_addr, rs2_imm);
+    // Convert to word address
+    uint32_t jal_target_word_val = jal_target_byte.get_data_uint() >> 2;
+    Register jal_target_word(jal_target_word_val, 32);
 
     Register final_pc(32);
 
     // AUIPC Update
+    // Our Instr. Mem. is Word aligned, therefore when we are at PC=1, in reality this would be address 0x0004
     Register new_auipc(32);
-    add(new_auipc, pc_val, rs2_imm);
+    add(new_auipc, pc_val_byte_addr, rs2_imm);
 
     // Default to PC+4
     for (size_t i = 0; i < 32; i++)
@@ -413,23 +557,19 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
         // Default
         final_pc.at(i) = next_pc.at(i);
         // If branch taken
-        final_pc.at(i) = should_branch.mux(final_pc.at(i), branch_target.at(i));
+        final_pc.at(i) = should_branch.mux(final_pc.at(i), branch_target_word.at(i));
         // If JAL taken
-        final_pc.at(i) = should_jal.mux(final_pc.at(i), jal_target.at(i));
+        final_pc.at(i) = should_jal.mux(final_pc.at(i), jal_target_word.at(i));
         // If JALR taken
-        final_pc.at(i) = should_jalr.mux(final_pc.at(i), jalr_target.at(i));
+        final_pc.at(i) = should_jalr.mux(final_pc.at(i), jalr_target_word.at(i));
     }
-    std::cout << "should_branch? " << should_branch.value() << std::endl;
-    std::cout << "should_jal? " << should_jal.value() << std::endl;
-    std::cout << "should_jalr? " << should_jalr.value() << std::endl;
-    jalr_target.print("jalr_target: ");
+
 
     // 12. Update PC
     pc.update_pc_brj(final_pc.get_data_uint());
 
     // 13. Register Write Back
     bit should_write_alu = ~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op);
-    cout<<"ALU? "<<should_write_alu.value()<<endl;
     bit should_write_load = bit(decoded.is_load);
     bit should_write_j = bit(decoded.is_jump);
     bit should_write_jalr = bit(decoded.is_jalr);
@@ -442,14 +582,13 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     conditional_register_write(should_write_load, decoded.rd, load_result);
 
     // Write return address for JAL/R, saves PC + 4 on Reg[rd]
-    conditional_register_write(should_write_j, decoded.rd, next_pc);
+    conditional_register_write(should_write_j, decoded.rd, return_addr_byte);
 
     // Write U-Type immediates for LUI, saves U-Imm on Reg[rd]
 
     Register u_type_imm(decoded.imm_unsigned, 32);
     conditional_register_write(is_lui, decoded.rd, u_type_imm);
-    std::cout << "is LUI? " << is_lui.value() << std::endl;
-    std::cout << "decoded.rd :" << decoded.rd << std::endl;
+
 
     // Write U-Type immediates for AUIPC, saves PC + U-Imm on Reg[rd]
     conditional_register_write(is_auipc, decoded.rd, new_auipc);
@@ -457,18 +596,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     // Write CSR result
     conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);
     conditional_csr_write(should_write_csr, decoded.csr_field, rs1);
-    std::cout << "Our csr field is: " << decoded.csr_field << std::endl;
 
-    // Debug output
-    std::cout << "Debug Info:" << std::endl;
-    std::cout << "rs1 value: " << register_to_int_internal(rs1) << std::endl;
-    std::cout << "Branch comparison result: " << comparison << std::endl;
-    std::cout << "is_zero: " << is_zero.value() << std::endl;
-    std::cout << "is_not_zero: " << is_not_zero.value() << std::endl;
-    std::cout << "should_branch: " << should_branch.value() << std::endl;
-    std::cout << "Current PC: 0x" << std::hex << pc_val.get_data_uint() << std::dec << std::endl;
-    std::cout << "Next PC: 0x" << std::hex << final_pc.get_data_uint() << std::dec << std::endl;
-    csrs[21].print("CSR 21 :");
 }
 
 RegisterFile &ZeroLoop::get_register_file()

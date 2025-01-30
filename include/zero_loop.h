@@ -1,11 +1,6 @@
 #pragma once
-#include "register.h"
-#include "reg_file.h"
-#include "alu.h"
-#include "pc.h"
-#include "ram_cpu.h"
-#include "decoder.h"
-#include <vector>
+
+#include "c_headers.h"
 
 class ZeroLoop
 {

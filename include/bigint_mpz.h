@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef bigint_h
 #define bigint_h
 

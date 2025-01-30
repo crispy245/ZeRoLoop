@@ -17,7 +17,7 @@ void ALU::full_adder(bit &s, bit &c, bit a, bit b, bit cin)
 
 Register ALU::add(Register &ret, Register a, Register b)
 {
-    bit c;
+    bit c = bit(0); // Initialize carry to 0
     for (bigint i = 0; i < a.width(); i++)
     {
         full_adder(ret.at(i), c, a.at(i), b.at(i), c);
@@ -147,13 +147,15 @@ Register ALU::compare_slt(Register a, Register b)
 {
     Register result(a.width());
     Register sub_result(a.width());
-
-    // Perform subtraction
     subtract(sub_result, a, b);
-    sub_result.print("compare slt: ");
 
-    // Copy sign bit to result[0], all other bits are initialized to 0
-    result.at(0) = sub_result.at(a.width() - 1);
+    bit a_sign = a.at(a.width() - 1);
+    bit b_sign = b.at(b.width() - 1);
+    bit signs_differ = a_sign ^ b_sign;
+    bit sub_sign = sub_result.at(a.width() - 1);
+
+    // If signs differ, a < b iff a is negative; else, use sub_sign
+    result.at(0) = signs_differ.mux(a_sign, sub_sign);
     return result;
 }
 
@@ -206,7 +208,7 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
     srl_result = logical_shift_right(a, b);
     sra_result = arithmetic_shift_right(a, b);
     slt_result = compare_slt(a, b);
-    slt_result.print("slt result");
+    //slt_result.print("slt result");
     sltu_result = compare_sltu(a, b);
 
     for (bigint i = 0; i < a.width(); i++)
@@ -233,7 +235,6 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
 
         result.at(i) = temp;
     }
-    result.print("alu result is: ");
 
     return result;
 }

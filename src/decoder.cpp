@@ -34,21 +34,19 @@ uint32_t Decoder::get_funct7(uint32_t instruction)
 
 // Sign extension is a procedure that depends solely fanning out certain bits, therefore no hardware cost is incurred.
 
-int32_t Decoder::get_imm_i(uint32_t instruction)
-{
+int32_t Decoder::get_imm_i(uint32_t instruction) {
     uint32_t funct3 = get_funct3(instruction);
+    uint32_t opcode = instruction & 0x7F; // Extract opcode (lowest 7 bits)
     int32_t imm;
 
-    if (funct3 == 0b001 || funct3 == 0b101)
-    { // SLLI, SRLI, or SRAI
-        imm = (instruction >> 20) & 0x1F;
-    }
-    else
-    {
-        imm = (instruction >> 20) & 0xFFF;
-        if (imm & 0x800)
-        {
-            imm |= 0xFFFFF000; // Sign extend
+    if ((funct3 == 0b001 || funct3 == 0b101) && opcode == 0b0010011) { 
+        // SLLI/SRLI/SRAI: 5-bit immediate (only for OP-IMM opcode)
+        imm = (instruction >> 20) & 0x1F; // Mask with 0x1F (5 bits)
+    } else {
+        // Other I-type: 12-bit immediate
+        imm = (instruction >> 20) & 0xFFF; // Correct mask: 0xFFF (12 bits)
+        if (imm & 0x800) { 
+            imm |= 0xFFFFF000; // Sign-extend
         }
     }
     return imm;
@@ -130,16 +128,11 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     uint32_t funct7 = get_funct7(instruction);
 
     // Store funct3 and funct7 bits
-    std::cout<<"funct3 : "<<funct3<<" ";
     for (int i = 0; i < 3; i++)
     {
         decoded.f3_bits[i] = bit((funct3 >> i) & 1);
     }
-    std::cout<<"after shift..."<<std::endl;
-    for(auto x : decoded.f3_bits){
-        std::cout<<x.value()<<" ";
-    }
-    std::cout<<endl;
+
 
     for (int i = 0; i < 7; i++)
     {
@@ -153,12 +146,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     {
         op_bits.push_back(bit((opcode >> i) & 1));
     }
-    std::cout << "Opcode bits: ";
-    for (int i = 6; i >= 0; i--)
-    {
-        std::cout << op_bits[i].value();
-    }
-    std::cout << std::endl;
+
 
     // Instruction type detection
     decoded.i_alu = ~op_bits[6] & ~op_bits[5] & op_bits[4] & ~op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0];
@@ -276,35 +264,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     // Create a 32-bit vector to store our immediate
     std::vector<bit> imm_bits(32, bit(0));
 
-    // For each bit position
-    // Optimize bit by storing it into an array and looping over it
-    // Or at least try it out
-    // for (int i = 0; i < 32; i++)
-    // {
-    //     bit curr_bit = bit(0);
 
-    //     // Create individual bits for each immediate type
-    //     bit i_imm_bit = bit((get_imm_i(instruction) >> i) & 1);
-    //     bit s_imm_bit = bit((get_imm_s(instruction) >> i) & 1);
-    //     bit b_imm_bit = bit((get_imm_b(instruction) >> i) & 1);
-    //     bit j_imm_bit = bit((get_imm_j(instruction) >> i) & 1);
-
-    //     // Mux each bit individually
-    //     curr_bit = decoded.is_i_imm.mux(curr_bit, i_imm_bit);
-    //     curr_bit = decoded.is_s_imm.mux(curr_bit, s_imm_bit);
-    //     curr_bit = decoded.is_b_imm.mux(curr_bit, b_imm_bit);
-    //     curr_bit = decoded.is_j_imm.mux(curr_bit, j_imm_bit);
-
-    //     imm_bits[i] = curr_bit;
-    // }
-
-    // decoded.imm = 0;
-    // for (int i = 0; i < 32; i++)
-    // {
-    //     decoded.imm |= (imm_bits[i].value() ? 1 : 0) << i;
-    // }
-
-    std::cout << "get_imm_u = " << get_imm_u(instruction) << std::endl;
     int32_t imm = 0;
     if (decoded.is_u_imm.value())
     {
