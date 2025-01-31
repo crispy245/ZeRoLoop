@@ -62,7 +62,7 @@ uint32_t register_to_uint_internal(Register &reg)
 }
 
 // Connect memories
-void ZeroLoop::connect_memories(RAM *instr_mem, RAM *data_mem)
+void ZeroLoop::connect_memories(vector<uint32_t> *instr_mem, RAM *data_mem)
 {
     instruction_memory = instr_mem;
     data_memory = data_mem;

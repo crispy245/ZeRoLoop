@@ -17,80 +17,13 @@ int32_t register_to_int(Register &reg)
     return result;
 }
 
-// void load_instructions(RAM *instruction_memory, char *file_location)
-// {
-//     std::ifstream vmh_file(file_location);
-//     if (!vmh_file.is_open())
-//     {
-//         throw std::runtime_error("Could not open VMH file");
-//     }
+void load_instructions(vector<uint32_t> &instr_mem, RAM *data_mem, const char *file_location, uint32_t data_start_addr = 2048) {
 
-//     std::string line;
-//     uint32_t current_addr = 0;
-
-//     // Helper lambda for converting hex string to uint32_t
-//     auto hex_to_uint32 = [](const std::string &hex_str) -> uint32_t
-//     {
-//         // Make sure we have 8 hex digits (32 bits)
-//         std::string padded_hex = std::string(8 - hex_str.length(), '0') + hex_str;
-//         uint32_t value;
-//         std::stringstream ss;
-//         ss << std::hex << padded_hex;
-//         ss >> value;
-//         return value;
-//     };
-
-//     // Helper lambda for converting address/value to bit vector
-//     auto to_bitvector = [](uint32_t value, size_t bits) -> vector<bit>
-//     {
-//         vector<bit> result;
-//         for (size_t i = 0; i < bits; i++)
-//         {
-//             result.push_back(bit((value >> i) & 1));
-//         }
-//         return result;
-//     };
-
-//     while (std::getline(vmh_file, line))
-//     {
-//         if (line.empty())
-//             continue;
-
-//         if (line[0] == '@')
-//         {
-//             std::string addr_str = line.substr(1);
-//             // current_addr = hex_to_uint32(addr_str) * 4;
-//             current_addr = hex_to_uint32(addr_str) >> 2;
-//         }
-//         else
-//         {
-//             uint32_t instruction = hex_to_uint32(line);
-
-//             vector<bit> addr_bits = to_bitvector(current_addr, instruction_memory->get_addr_bits());
-//             vector<bit> instr_bits = to_bitvector(instruction, 32);
-
-//             // Write to memory
-//             instruction_memory->write(addr_bits, instr_bits);
-
-//             std::cout << "Loaded instruction at 0x" << std::hex << current_addr
-//                       << ": 0x" << instruction
-//                       << std::dec << std::endl;
-
-//             current_addr += 1;
-//         }
-//         std::cout << "Raw line: " << line << std::endl;
-//     }
-// }
-
-void load_instructions(RAM *instr_mem, RAM *data_mem, const char *file_location, uint32_t data_start_addr = 2048) {
     std::ifstream vmh_file(file_location);
     if (!vmh_file.is_open()) {
         throw std::runtime_error("Could not open VMH file");
     }
 
-    std::string line;
-    uint32_t current_addr = 0;
-    bool is_data_section = false;
 
     // Helper lambda for converting hex string to uint32_t
     auto hex_to_uint32 = [](const std::string &hex_str) -> uint32_t {
@@ -109,6 +42,10 @@ void load_instructions(RAM *instr_mem, RAM *data_mem, const char *file_location,
         }
         return result;
     };
+
+    std::string line;
+    uint32_t current_addr = 0;
+    bool is_data_section = false;
 
     while (std::getline(vmh_file, line)) {
         if (line.empty()) continue;
@@ -141,8 +78,7 @@ void load_instructions(RAM *instr_mem, RAM *data_mem, const char *file_location,
                           << ": 0x" << value
                           << std::dec << std::endl;
             } else {
-                std::vector<bit> addr_bits = to_bitvector(word_addr, instr_mem->get_addr_bits());
-                instr_mem->write(addr_bits, value_bits);
+                instr_mem.at(word_addr) = value;
                 std::cout << "Loaded INSTRUCTION at 0x" << std::hex << current_addr
                           << ": 0x" << value
                           << std::dec << std::endl;
@@ -161,7 +97,7 @@ void test_full_system(char *instr_location)
     std::cout << "\n=== Testing RISC-V CPU Implementation ===\n";
 
     // Initialize memories
-    RAM instruction_memory(16384, 32); //unified, should thread carefully here
+    vector<uint32_t> instruction_memory(16384); 
     RAM data_memory(8192, 32);
 
     // Helper functions
@@ -176,7 +112,7 @@ void test_full_system(char *instr_location)
     };
 
     // load_instructions(&instruction_memory, instr_location);
-    load_instructions(&instruction_memory, &data_memory, instr_location);
+    load_instructions(instruction_memory, &data_memory, instr_location);
 
 
     std::cout << "\nStarting program execution:\n";
@@ -200,41 +136,17 @@ void test_full_system(char *instr_location)
 
         // Create next CPU state
         ZeroLoop *nextCPU = new ZeroLoop();
-        nextCPU->connect_memories(&instruction_memory, &instruction_memory);
         nextCPU->copy_state_from(*currentCPU);
 
         // Fetch instruction using current PC
-        vector<bit> pc_bits = addr_to_bits(current_pc, instruction_memory.get_addr_bits());
-        vector<bit> instr_bits = instruction_memory.read(pc_bits);
+        uint32_t instruction = instruction_memory.at(current_pc);
 
-        // Convert instruction bits to uint32_t
-        uint32_t instruction = 0;
-        for (size_t j = 0; j < 32; j++)
-        {
-            if (instr_bits[j].value())
-            {
-                instruction |= (1u << j);
-            }
-        }
 
         // std::cout << "\nExecuting at PC = 0x" << current_pc
         //           << ", Instruction = 0x" << std::hex << instruction << std::dec << std::endl;
 
         // Execute instruction on next state
         nextCPU->execute_instruction(instruction);
-
-        // Print register state
-        //std::cout << "\nRegister file after instruction:\n";
-        //nextCPU->print_registers();
-
-        // Print operation counts
-        // std::cout << "\nOperation counts:\n";
-        // for (auto op : bit_ops_selectors)
-        // {
-        //     std::cout << bit::opsname(op) << ": " << bit::ops(op) << "\n";
-        // }
-        //std::cout << "Total operations: " << bit::ops() << "\n";
-        //std::cout << "===========================\n";
 
         // Clean up current state and move to next
         delete currentCPU;

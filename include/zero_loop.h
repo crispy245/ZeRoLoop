@@ -9,8 +9,8 @@ private:
     Decoder decoder;
     ALU alu;
     PC pc;
-    RAM *instruction_memory; // Pointer to instruction memory
-    RAM *data_memory;        // Pointer to data memory
+    vector<uint32_t> *instruction_memory; // Pointer to instruction memory
+    RAM *data_memory;                     // Pointer to data memory
     std::vector<Register> csrs;
 
 public:
@@ -81,7 +81,7 @@ public:
 
     // Stage operations
     void execute_instruction(uint32_t instruction);
-    void connect_memories(RAM *instr_mem, RAM *data_mem);
+    void connect_memories(vector<uint32_t> *instr_mem, RAM *data_mem);
     void run_program();
 
     // syscalls
