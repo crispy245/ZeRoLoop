@@ -12,24 +12,9 @@ void ZeroLoop::write_register(size_t pos, Register a)
     reg_file.write(pos, a);
 }
 
-Register ZeroLoop::at_register(size_t index)
-{
-    return reg_file.at(index);
-}
-
-size_t ZeroLoop::get_register_width()
-{
-    return reg_file.register_width();
-}
-
 void ZeroLoop::print_registers()
 {
     reg_file.print_all_contents();
-}
-
-void ZeroLoop::copy_registers_from(const ZeroLoop &other)
-{
-    reg_file = other.get_register_file();
 }
 
 Register ZeroLoop::execute_alu(Register &a, Register &b, std::vector<bit> alu_op)
@@ -81,60 +66,15 @@ std::vector<bit> addr_to_bits(uint32_t addr, size_t bits)
     return result;
 }
 
-void ZeroLoop::full_adder(bit &s, bit &c, bit a, bit b, bit cin)
-{
-    bit t = (a ^ b);
-    s = t ^ cin;
-    c = (a & b) | (cin & t);
-}
-
 void ZeroLoop::add(Register &ret, Register a, Register b)
 {
-    bit c;
-    for (bigint i = 0; i < a.width(); i++)
-    {
-        full_adder(ret.at(i), c, a.at(i), b.at(i), c);
-    }
+
+    alu.add(ret, a, b);
 }
 
-Register ZeroLoop::two_complement(Register b)
+void ZeroLoop::subtract(Register &result, Register a, Register b)
 {
-    Register complement(b.width());
-
-    // Invert all bits (one's complement)
-    for (size_t i = 0; i < b.width(); ++i)
-    {
-        complement.at(i) = ~b.at(i);
-    }
-
-    Register register_holding_1(1, b.width());
-    add(complement, complement, register_holding_1);
-
-    return complement;
-}
-
-Register ZeroLoop::subtract(Register &result, Register a, Register b)
-{
-    Register b_complement = two_complement(b);
-    bit carry = bit(0);
-    add(result, a, b_complement);
-    return result;
-}
-
-void ZeroLoop::conditional_pc_jump(const bit &should_jump, const Register &target)
-{
-    if (should_jump.value())
-    {
-        pc.update_pc_brj(target.get_data_uint());
-    }
-}
-
-void ZeroLoop::conditional_pc_increment(const bit &should_increment, const Register &offset)
-{
-    if (should_increment.value())
-    {
-        pc.increase_pc(offset.get_data_uint());
-    }
+    alu.subtract(result, a, b);
 }
 
 Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::vector<bit> &addr, std::vector<bit> f3_bits)
@@ -152,7 +92,7 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
                 byte_addr_uint |= (1 << i);
             }
         }
-        byte_addr_uint = byte_addr_uint - 8192; // horrible code sorry
+        byte_addr_uint = byte_addr_uint - 8192; // horrible code sorry, but it is supposed to represent where data starts 
         uint32_t word_addr_uint = byte_addr_uint >> 2;
         uint32_t offset = byte_addr_uint & 0x3;
 
@@ -290,7 +230,7 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
             }
         }
 
-        // Adjust for data memory base address (e.g., 0x2000)
+        // Adjust for data memory base address
         byte_addr_uint = byte_addr_uint - 8192;
 
         // Calculate word address and byte offset
@@ -396,11 +336,6 @@ void ZeroLoop::conditional_csr_write(const bit &should_write, size_t csr_pos, co
     {
         csrs[csr_pos] = data;
     }
-}
-
-const uint32_t ZeroLoop::get_csr_21()
-{
-    return csrs[21].get_data_uint();
 }
 
 void ZeroLoop::handle_syscall()
@@ -555,7 +490,7 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
             return_addr_byte.at(i) = bit(0);
     }
 
-    // Print syscall
+    // Detect Syscalls
     if (instruction == 0x00000073)
     {
         handle_syscall();
@@ -617,7 +552,6 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     conditional_register_write(should_write_j, decoded.rd, return_addr_byte);
 
     // Write U-Type immediates for LUI, saves U-Imm on Reg[rd]
-
     Register u_type_imm(decoded.imm_unsigned, 32);
     conditional_register_write(is_lui, decoded.rd, u_type_imm);
 
@@ -627,24 +561,4 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     // Write CSR result
     conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);
     conditional_csr_write(should_write_csr, decoded.csr_field, rs1);
-}
-
-RegisterFile &ZeroLoop::get_register_file()
-{
-    return reg_file;
-}
-
-const RegisterFile &ZeroLoop::get_register_file() const
-{
-    return reg_file;
-}
-
-ALU &ZeroLoop::get_alu()
-{
-    return alu;
-}
-
-const ALU &ZeroLoop::get_alu() const
-{
-    return alu;
 }

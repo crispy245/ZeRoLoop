@@ -161,17 +161,20 @@ Register ALU::compare_slt(Register a, Register b)
     return result;
 }
 
-Register ALU::compare_sltu(Register a, Register b) {
+Register ALU::compare_sltu(Register a, Register b)
+{
     Register result(a.width());
     bool a_less = false;
     bool found_diff = false;
 
     // Compare bits from MSB to LSB to find the first differing bit
-    for (int i = a.width() - 1; i >= 0; --i) {
+    for (int i = a.width() - 1; i >= 0; --i)
+    {
         bit a_bit = a.at(i);
         bit b_bit = b.at(i);
 
-        if (a_bit.value() != b_bit.value()) {
+        if (a_bit.value() != b_bit.value())
+        {
             // If a's bit is 0 and b's is 1, a < b (unsigned)
             a_less = (a_bit.value() == 0);
             found_diff = true;
@@ -198,7 +201,6 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
     bit is_sra = alu_op[3] & alu_op[2] & alu_op[1] & ~alu_op[0];    // 0111
     bit is_or = ~alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];   // 1000
     bit is_and = alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];   // 1001
-
 
     // Compute all possible results
     Register add_result(a.width());

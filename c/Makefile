@@ -98,17 +98,20 @@ move-outputs:
 	mv $(BIN_DIR)/*.dump $(DUMP_DIR)/
 	mv $(BIN_DIR)/*.vmh $(VMH_DIR)/
 
-# RISC-V test compilation target
-test: $(ASM_TESTS)
-	@echo "Building RISC-V tests..."
-	@for test in $(basename $(notdir $(ASM_TESTS))); do \
-		echo "Building $$test..."; \
-		$(CC) $(TEST_FLAGS) -T memory_map.ld -nostdlib \
-			$(RISCV_TESTS_DIR)/$$test.S -o $(BIN_DIR)/$$test.elf && \
-		$(OBJDUMP) -EL -sz --section=.text --section=.data --section=.rodata $(BIN_DIR)/$$test.elf > $(DUMP_DIR)/$$test.dump && \
-		$(OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.rodata $(BIN_DIR)/$$test.elf > $(DUMP_DIR)/$$test.detailed.dump && \
-		$(PYTHON) $(VMH_SCRIPT) $(DUMP_DIR)/$$test.dump > $(RISCV_TESTS_VMH)/$$test.vmh; \
-	done
+# Extract test names (without directory and extension)
+TEST_NAMES := $(basename $(notdir $(ASM_TESTS)))
+
+# Pattern rule: Build each test's ELF file and generate associated dumps and VMH.
+$(BIN_DIR)/%.elf: $(RISCV_TESTS_DIR)/%.S
+	@echo "Building $*..."
+	$(CC) $(TEST_FLAGS) -T memory_map.ld -nostdlib $< -o $@
+	$(OBJDUMP) -EL -sz --section=.text --section=.data --section=.rodata $@ > $(DUMP_DIR)/$*.dump
+	$(OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.rodata $@ > $(DUMP_DIR)/$*.detailed.dump
+	$(PYTHON) $(VMH_SCRIPT) $(DUMP_DIR)/$*.dump > $(RISCV_TESTS_VMH)/$*.vmh
+
+# The 'test' target depends on all individual test ELF files.
+test: $(TEST_NAMES:%=$(BIN_DIR)/%.elf)
+	@echo "All RISC-V tests have been built."
 
 clean:
 	rm -f $(OBJS) $(DEPS)

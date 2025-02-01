@@ -48,33 +48,17 @@ public:
     size_t get_register_width();
     void print_registers();
 
-    // Copy operations
-    void copy_registers_from(const ZeroLoop &other);
-
     // ALU operations
     Register execute_alu(Register &a, Register &b, std::vector<bit> alu_op);
-    Register two_complement(Register b);
-    Register subtract(Register &result, Register a, Register b);
+    void subtract(Register &result, Register a, Register b);
 
-    // Component access
-    RegisterFile &get_register_file();
-    const RegisterFile &get_register_file() const;
-    ALU &get_alu();
-    const ALU &get_alu() const;
-    const uint32_t get_csr_21();
 
     // Conditional write to units
-    void conditional_pc_jump(const bit &should_jump, const Register &target);
-    void conditional_pc_increment(const bit &should_increment, const Register &offset);
     void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits);
     Register conditional_memory_read(const bit &should_read, const std::vector<bit> &addr, std::vector<bit> f3_bits);
     void conditional_register_write(const bit &should_write, size_t rd, const Register &data);
     void conditional_csr_write(const bit &should_write, size_t csr_pos, const Register &data);
  
- 
-
-
-
     void full_adder(bit &s, bit &c, bit a, bit b, bit cin);
     void add(Register &ret, Register a, Register b);
     uint32_t get_pc() { return pc.read_pc(); };

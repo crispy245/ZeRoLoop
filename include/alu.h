@@ -10,11 +10,11 @@ class ALU
 {
 public:
     Register execute(Register &a, Register &b, std::vector<bit> alu_op);
+    Register add(Register &ret, Register a, Register b);
+    Register subtract(Register &result, Register a, Register b);
 
 private:
     // Arithmetic operations
-    Register add(Register &ret, Register a, Register b);
-    Register subtract(Register &result, Register a, Register b);
     Register two_complement(Register b);
 
     // Shift operations
