@@ -30,22 +30,25 @@ uint32_t Decoder::get_funct7(uint32_t instruction)
     return (instruction >> 25) & 0x7F; // bits 25-31
 }
 
-
-
 // Sign extension is a procedure that depends solely fanning out certain bits, therefore no hardware cost is incurred.
 
-int32_t Decoder::get_imm_i(uint32_t instruction) {
+int32_t Decoder::get_imm_i(uint32_t instruction)
+{
     uint32_t funct3 = get_funct3(instruction);
     uint32_t opcode = instruction & 0x7F; // Extract opcode (lowest 7 bits)
     int32_t imm;
 
-    if ((funct3 == 0b001 || funct3 == 0b101) && opcode == 0b0010011) { 
+    if ((funct3 == 0b001 || funct3 == 0b101) && opcode == 0b0010011)
+    {
         // SLLI/SRLI/SRAI: 5-bit immediate (only for OP-IMM opcode)
         imm = (instruction >> 20) & 0x1F; // Mask with 0x1F (5 bits)
-    } else {
+    }
+    else
+    {
         // Other I-type: 12-bit immediate
         imm = (instruction >> 20) & 0xFFF; // Correct mask: 0xFFF (12 bits)
-        if (imm & 0x800) { 
+        if (imm & 0x800)
+        {
             imm |= 0xFFFFF000; // Sign-extend
         }
     }
@@ -133,7 +136,6 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
         decoded.f3_bits[i] = bit((funct3 >> i) & 1);
     }
 
-
     for (int i = 0; i < 7; i++)
     {
         decoded.f7_bits[i] = bit((funct7 >> i) & 1);
@@ -163,7 +165,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.is_add = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0] & ~decoded.f7_bits[5];
     decoded.is_sub = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0] & decoded.f7_bits[5];
     decoded.is_sll = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0];
-    decoded.is_slt = decoded.r_type & ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0];
+    decoded.is_slt = decoded.r_type & ~decoded.f3_bits[2] & decoded.f3_bits[1] & ~decoded.f3_bits[0] & ~decoded.f7_bits[5];
     decoded.is_sltu = decoded.r_type & ~decoded.f3_bits[2] & decoded.f3_bits[1] & decoded.f3_bits[0];
     decoded.is_xor = decoded.r_type & decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0];
     decoded.is_srl = decoded.r_type & decoded.f3_bits[2] & ~decoded.f3_bits[1] & decoded.f3_bits[0] & ~decoded.f7_bits[5];
@@ -203,16 +205,16 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     // CSR
     decoded.csr_field = (instruction >> 20) & 0xFFF; // CSR field is in bits 31:20
 
-    // ALU operation vector setup
-    std::vector<bit> sub_op = {bit(1), bit(0), bit(0), bit(0)};
-    std::vector<bit> sll_op = {bit(0), bit(1), bit(0), bit(0)};
-    std::vector<bit> slt_op = {bit(0), bit(1), bit(1), bit(0)};
-    std::vector<bit> sltu_op = {bit(1), bit(1), bit(0), bit(0)};
-    std::vector<bit> xor_op = {bit(1), bit(0), bit(1), bit(0)};
-    std::vector<bit> srl_op = {bit(0), bit(1), bit(1), bit(0)};
-    std::vector<bit> sra_op = {bit(1), bit(1), bit(1), bit(0)};
-    std::vector<bit> or_op = {bit(0), bit(0), bit(0), bit(1)};
-    std::vector<bit> and_op = {bit(1), bit(0), bit(0), bit(1)};
+    std::vector<bit> add_op = {bit(0), bit(0), bit(0), bit(0)};  // 0000
+    std::vector<bit> sub_op = {bit(0), bit(0), bit(0), bit(1)};  // 0001
+    std::vector<bit> sll_op = {bit(0), bit(0), bit(1), bit(0)};  // 0010
+    std::vector<bit> slt_op = {bit(0), bit(0), bit(1), bit(1)};  // 0011
+    std::vector<bit> sltu_op = {bit(0), bit(1), bit(0), bit(0)}; // 0100
+    std::vector<bit> xor_op = {bit(0), bit(1), bit(0), bit(1)};  // 0101
+    std::vector<bit> srl_op = {bit(0), bit(1), bit(1), bit(0)};  // 0110
+    std::vector<bit> sra_op = {bit(0), bit(1), bit(1), bit(1)};  // 0111
+    std::vector<bit> or_op = {bit(1), bit(0), bit(0), bit(0)};   // 1000
+    std::vector<bit> and_op = {bit(1), bit(0), bit(0), bit(1)};  // 1001
 
     // Mux ALU operations
     bit_vector_mux(decoded.alu_op, sub_op, decoded.is_sub | decoded.is_beq | decoded.is_bne);
@@ -265,6 +267,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     std::vector<bit> imm_bits(32, bit(0));
 
 
+    //should mux...
     int32_t imm = 0;
     if (decoded.is_u_imm.value())
     {

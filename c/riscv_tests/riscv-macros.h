@@ -29,15 +29,27 @@ _start:                                                                  \
 // bne won't do anything, and the test harness will hopefully detect the
 // update to _tohost soon after changing it.
 
+// CSR Based END
+// #define TEST_RISCV_END                                                  \
+// _pass:                                                                  \
+//     addi   x29, x0, 1;                                                  \
+//                                                                         \
+// _fail:                                                                  \
+//     li     x2,  1;                                                      \
+//     csrw   21, x29;                                                     \
+// 1:  bne    x0, x2, 1b;                                                  \
+//     nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;                   \
+
+// SYSCALL Based END
 #define TEST_RISCV_END                                                  \
 _pass:                                                                  \
-    addi   x29, x0, 1;                                                  \
-                                                                        \
+    addi   x10, x0, 0;    /* Set exit code to 0 (success) */            \
+    addi   x17, x0, 93;   /* Set syscall number for exit (93) */        \
+    ecall;               /* Perform the syscall */                      \
 _fail:                                                                  \
-    li     x2,  1;                                                      \
-    csrw   21, x29;                                                     \
-1:  bne    x0, x2, 1b;                                                  \
-    nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;                   \
+    addi   x10, x0, -1;   /* Set exit code to -1 (failure) */           \
+    addi   x17, x0, 93;   /* Set syscall number for exit (93) */        \
+    ecall;               /* Perform the syscall */
 
 
 //------------------------------------------------------------------------

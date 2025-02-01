@@ -28,17 +28,19 @@ RISCV_TESTS_VMH = riscv_tests_vmh
 
 # Python configuration
 PYTHON = python3
-VMH_SCRIPT = objdump2vmh.py
+VMH_SCRIPT = objdump2vmh.py  # Ensure this script exists in your project directory
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.c)
+ASM_SRCS = $(ASM_DIR)/crt0.s  # Add startup code
 HEADERS = $(wildcard $(INC_DIR)/*.h)
 ASM_TESTS = $(wildcard $(RISCV_TESTS_DIR)/*.S)
-OBJS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+OBJS = $(ASM_SRCS:$(ASM_DIR)/%.s=$(OBJ_DIR)/%.o) \
+       $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEPS = $(SRCS:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
 
 # Compiler flags
-CFLAGS =-march=rv32i_zicsr \
+CFLAGS = -march=rv32i_zicsr \
     -mabi=ilp32 \
     -nostdlib \
     -ffreestanding \
@@ -50,6 +52,9 @@ CFLAGS =-march=rv32i_zicsr \
     -O0 \
     -g \
     -I$(INC_DIR)
+
+# Assembler flags
+ASFLAGS = -march=rv32i_zicsr -I$(INC_DIR)
 
 # RISC-V test flags
 TEST_FLAGS = -march=rv32izicsr \
@@ -69,19 +74,23 @@ $(shell mkdir -p $(SRC_DIR) $(INC_DIR) $(OBJ_DIR) $(DEP_DIR) $(BIN_DIR) $(DUMP_D
 
 all: $(BIN_DIR)/$(TARGET) generate-dumps move-outputs
 
+# Compile assembly files (ensure crt0.s is compiled first)
+$(OBJ_DIR)/%.o: $(ASM_DIR)/%.s
+	$(CC) $(CFLAGS) -c $< -o $@
+
 # Compile C files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 	@$(CC) $(CFLAGS) -MM -MT $@ $< > $(DEP_DIR)/$*.d
 
-# Link the ELF file
+# Link the ELF file (ensure crt0.o comes first)
 $(BIN_DIR)/$(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $@
 
 # Generate dumps and VMH files
 generate-dumps: $(BIN_DIR)/$(TARGET)
 	$(OBJDUMP) -EL -sz --section=.text --section=.data --section=.rodata $< > $(BIN_DIR)/$(TARGET).dump
-	$(OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.text._start  --section=.rodata  $< > $(BIN_DIR)/$(TARGET).detailed.dump
+	$(OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.rodata $< > $(BIN_DIR)/$(TARGET).detailed.dump
 	$(PYTHON) $(VMH_SCRIPT) $(BIN_DIR)/$(TARGET).dump > $(BIN_DIR)/$(TARGET).vmh
 
 # Move outputs to appropriate directories

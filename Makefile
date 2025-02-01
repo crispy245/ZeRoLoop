@@ -12,7 +12,7 @@ program: $(MAIN_OBJ) $(OBJECTS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-debug: CXXFLAGS += -O0
+debug: CXXFLAGS := -O0 -I./include -std=c++17 -g
 debug: program
 	gdb ./program
 
@@ -24,11 +24,14 @@ test-all: program
 	@echo "Test started at $$(date)" >> $(TEST_LOG)
 	@for file in c/riscv_tests_vmh/*.vmh; do \
 		echo "\nTesting $${file}..." | tee -a $(TEST_LOG); \
-		if ./program "$${file}"; then \
-			echo "✓ PASS: $${file}" >> $(TEST_LOG); \
+		output=$$(./program "$${file}" 2>&1); \
+		exit_code=$$(echo "$$output" | grep -oP 'Program exited with code \K\-?[0-9]+'); \
+		if [ -z "$$exit_code" ]; then \
+			echo "✗ FAIL: $${file} (No exit code found in output)" | tee -a $(TEST_LOG); \
+		elif [ $$exit_code -eq 0 ]; then \
+			echo "✓ PASS: $${file}" | tee -a $(TEST_LOG); \
 		else \
-			echo "✗ FAIL: $${file}" >> $(TEST_LOG); \
-			exit 1; \
+			echo "✗ FAIL: $${file} (Exit code: $$exit_code)" | tee -a $(TEST_LOG); \
 		fi; \
 	done
 	@echo "\nAll tests completed at $$(date)" | tee -a $(TEST_LOG)

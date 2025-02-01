@@ -5,7 +5,7 @@
             "label": "build",
             "type": "shell",
             "command": "make",
-            "args": ["run"],
+            "args": ["program"],
             "group": {
                 "kind": "build",
                 "isDefault": true

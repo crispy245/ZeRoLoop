@@ -6,8 +6,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/program",
-            "args": [],
-            "stopAtEntry": false,
+            "args": ["c/vmh/main.rv32.elf.vmh"],
+            "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
@@ -23,7 +23,4 @@
             "miDebuggerPath": "/usr/bin/gdb"
         }
     ]
-
-    
 }
-

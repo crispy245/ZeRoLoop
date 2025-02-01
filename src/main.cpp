@@ -147,6 +147,7 @@ void test_full_system(char *instr_location)
 
         // Execute instruction on next state
         nextCPU->execute_instruction(instruction);
+        
 
         // Clean up current state and move to next
         delete currentCPU;

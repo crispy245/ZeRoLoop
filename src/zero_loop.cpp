@@ -1,4 +1,5 @@
 #include "zero_loop.h"
+#include <stdlib.h>
 
 Register ZeroLoop::read_register(size_t pos)
 {
@@ -404,6 +405,7 @@ void ZeroLoop::handle_syscall()
     {
         int exit_code = register_to_int_internal(a0);
         std::cout << "\nProgram exited with code " << exit_code << std::endl;
+        exit(0);
     }
     break;
     }

@@ -70,6 +70,7 @@
         "c_headers.h": "c",
         "alu.h": "c",
         "ram_cpu.h": "c",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "debug.inlineValues": "on",  
     }
 }

@@ -12,13 +12,6 @@ __linere = r'^\s*(?P<addr>' + __hexvre + ')' + \
            r'\s*(?P<v2>' + __hex8re + ')?' + \
            r'\s*(?P<v3>' + __hex8re + ')?'
 
-__bootstrapstr = '''
-@20000
-00001137
-fff10113
-0000d1b7
-23818193
-e99ff06f'''
 
 def main():
     state = 'init'

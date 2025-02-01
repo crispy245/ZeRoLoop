@@ -76,7 +76,6 @@ Register ALU::logical_shift_left(Register a, Register shift_amount)
     }
     return result;
 }
-
 Register ALU::logical_shift_right(Register a, Register shift_amount)
 {
     Register result(a.width());
@@ -86,7 +85,8 @@ Register ALU::logical_shift_right(Register a, Register shift_amount)
         bit shifted_bit = bit(0);
 
         bigint src_pos = i;
-        for (bigint j = 0; j < shift_amount.width(); j++)
+        // Only consider lower 5 bits for 32-bit shifts
+        for (bigint j = 0; j < 5; j++) // Changed from shift_amount.width() to 5
         {
             if (shift_amount.at(j).value())
             {
@@ -114,7 +114,8 @@ Register ALU::arithmetic_shift_right(Register a, Register shift_amount)
         bit shifted_bit = sign_bit;
 
         bigint src_pos = i;
-        for (bigint j = 0; j < shift_amount.width(); j++)
+        // Only consider lower 5 bits for 32-bit shifts
+        for (bigint j = 0; j < 5; j++) // Changed from shift_amount.width() to 5
         {
             if (shift_amount.at(j).value())
             {
@@ -155,39 +156,49 @@ Register ALU::compare_slt(Register a, Register b)
     bit sub_sign = sub_result.at(a.width() - 1);
 
     // If signs differ, a < b iff a is negative; else, use sub_sign
-    result.at(0) = signs_differ.mux(a_sign, sub_sign);
+    result.at(0) = signs_differ.mux(sub_sign, a_sign); // Parameters swapped here
+
     return result;
 }
 
-Register ALU::compare_sltu(Register a, Register b)
-{
+Register ALU::compare_sltu(Register a, Register b) {
     Register result(a.width());
-    Register sub_result(a.width());
+    bool a_less = false;
+    bool found_diff = false;
 
-    subtract(sub_result, a, b);
+    // Compare bits from MSB to LSB to find the first differing bit
+    for (int i = a.width() - 1; i >= 0; --i) {
+        bit a_bit = a.at(i);
+        bit b_bit = b.at(i);
 
-    // For unsigned comparison:
-    // If the highest bit is 1 after subtraction, there was a borrow,
-    // meaning a < b in unsigned comparison
-    result.at(0) = sub_result.at(a.width() - 1);
+        if (a_bit.value() != b_bit.value()) {
+            // If a's bit is 0 and b's is 1, a < b (unsigned)
+            a_less = (a_bit.value() == 0);
+            found_diff = true;
+            break;
+        }
+    }
+
+    // If all bits are equal, a is not less than b (result = 0)
+    result.at(0) = bit(found_diff ? a_less : 0);
     return result;
 }
-
 Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
 {
     Register result(a.width());
 
     // Decode operation using the alu_op bits
-    bit is_add = ~alu_op[3] & ~alu_op[2] & ~alu_op[1] & ~alu_op[0];
-    bit is_sub = ~alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];
-    bit is_sll = ~alu_op[3] & ~alu_op[2] & alu_op[1] & ~alu_op[0];
-    bit is_slt = ~alu_op[3] & ~alu_op[2] & alu_op[1] & alu_op[0];
-    bit is_sltu = ~alu_op[3] & alu_op[2] & ~alu_op[1] & ~alu_op[0];
-    bit is_xor = ~alu_op[3] & alu_op[2] & ~alu_op[1] & alu_op[0];
-    bit is_srl = ~alu_op[3] & alu_op[2] & alu_op[1] & ~alu_op[0];
-    bit is_sra = ~alu_op[3] & alu_op[2] & alu_op[1] & alu_op[0];
-    bit is_or = alu_op[3] & ~alu_op[2] & ~alu_op[1] & ~alu_op[0];
-    bit is_and = alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];
+    bit is_add = ~alu_op[3] & ~alu_op[2] & ~alu_op[1] & ~alu_op[0]; // 0000
+    bit is_sub = alu_op[3] & ~alu_op[2] & ~alu_op[1] & ~alu_op[0];  // 0001
+    bit is_sll = ~alu_op[3] & alu_op[2] & ~alu_op[1] & ~alu_op[0];  // 0010
+    bit is_slt = alu_op[3] & alu_op[2] & ~alu_op[1] & ~alu_op[0];   // 1100 wierd?!
+    bit is_sltu = ~alu_op[3] & ~alu_op[2] & alu_op[1] & ~alu_op[0]; // 0100
+    bit is_xor = alu_op[3] & ~alu_op[2] & alu_op[1] & ~alu_op[0];   // 0101
+    bit is_srl = ~alu_op[3] & alu_op[2] & alu_op[1] & ~alu_op[0];   // 0110
+    bit is_sra = alu_op[3] & alu_op[2] & alu_op[1] & ~alu_op[0];    // 0111
+    bit is_or = ~alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];   // 1000
+    bit is_and = alu_op[3] & ~alu_op[2] & ~alu_op[1] & alu_op[0];   // 1001
+
 
     // Compute all possible results
     Register add_result(a.width());
@@ -208,7 +219,7 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
     srl_result = logical_shift_right(a, b);
     sra_result = arithmetic_shift_right(a, b);
     slt_result = compare_slt(a, b);
-    //slt_result.print("slt result");
+    // slt_result.print("slt result");
     sltu_result = compare_sltu(a, b);
 
     for (bigint i = 0; i < a.width(); i++)
@@ -220,18 +231,21 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
 
     for (bigint i = 0; i < result.width(); i++)
     {
-        bit temp = slt_result.at(i); // Start with SLT result
+        bit temp = bit(0);
 
-        // Then do other muxes only if their select signals are high
-        temp = is_sltu.mux(temp, sltu_result.at(i));
-        temp = is_sra.mux(temp, sra_result.at(i));
-        temp = is_srl.mux(temp, srl_result.at(i));
-        temp = is_sll.mux(temp, sll_result.at(i));
-        temp = is_sub.mux(temp, sub_result.at(i));
+        // Check low-priority operations first
+        temp = is_and.mux(temp, and_result.at(i));
+        temp = is_or.mux(temp, or_result.at(i));
+        temp = is_xor.mux(temp, xor_result.at(i));
         temp = is_add.mux(temp, add_result.at(i));
-        temp = is_xor.mux(temp, (a.at(i) ^ b.at(i)));
-        temp = is_or.mux(temp, (a.at(i) | b.at(i)));
-        temp = is_and.mux(temp, (a.at(i) & b.at(i)));
+        temp = is_sub.mux(temp, sub_result.at(i));
+        temp = is_sll.mux(temp, sll_result.at(i));
+        temp = is_srl.mux(temp, srl_result.at(i));
+        temp = is_sra.mux(temp, sra_result.at(i));
+        temp = is_sltu.mux(temp, sltu_result.at(i));
+
+        // Check SLT last (highest priority)
+        temp = is_slt.mux(temp, slt_result.at(i));
 
         result.at(i) = temp;
     }
