@@ -95,25 +95,13 @@ void test_full_system(char *instr_location)
 {
     bit::clear_all();
     std::cout << "\n=== Testing RISC-V CPU Implementation ===\n";
-
+    
     // Initialize memories
     vector<uint32_t> instruction_memory(16384); 
     RAM data_memory(8192, 32);
 
-    // Helper functions
-    auto addr_to_bits = [](uint32_t addr, size_t bits)
-    {
-        vector<bit> result;
-        for (size_t i = 0; i < bits; i++)
-        {
-            result.push_back(bit((addr >> i) & 1));
-        }
-        return result;
-    };
-
     // load_instructions(&instruction_memory, instr_location);
     load_instructions(instruction_memory, &data_memory, instr_location);
-
 
     std::cout << "\nStarting program execution:\n";
     std::cout << "===========================\n";
@@ -126,11 +114,6 @@ void test_full_system(char *instr_location)
     while (true)
     {
 
-        if (currentCPU->get_csr_21() == 1)
-        {
-            std::cout << "PASSED" << std::endl;
-            break;
-        }
 
         uint32_t current_pc = currentCPU->get_pc();
 
@@ -161,6 +144,5 @@ void test_full_system(char *instr_location)
 int main(int argc, char *argv[])
 {
     test_full_system(argv[1]);
-    std::cout << "\nTotal gate count: " << bit::ops() << "\n";
     return 0;
 }

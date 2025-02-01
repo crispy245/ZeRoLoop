@@ -1,5 +1,6 @@
 #include "zero_loop.h"
 #include <stdlib.h>
+#include <iomanip>
 
 Register ZeroLoop::read_register(size_t pos)
 {
@@ -267,11 +268,9 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
         {
             result.at(i) = mem_data[i];
         }
-
     }
     return result;
 }
-
 
 void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits)
 {
@@ -279,11 +278,14 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
     bit is_sh = ~f3_bits[2] & ~f3_bits[1] & f3_bits[0];
     bit is_sw = ~f3_bits[2] & f3_bits[1] & ~f3_bits[0];
 
-    if (should_write.value() && data_memory != nullptr) {
+    if (should_write.value() && data_memory != nullptr)
+    {
         // Convert byte address to uint32_t
         uint32_t byte_addr_uint = 0;
-        for (size_t i = 0; i < addr.size() && i < 32; ++i) {
-            if (addr[i].value()) {
+        for (size_t i = 0; i < addr.size() && i < 32; ++i)
+        {
+            if (addr[i].value())
+            {
                 byte_addr_uint |= (1 << i);
             }
         }
@@ -297,57 +299,74 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
 
         // Convert word address to bits
         std::vector<bit> word_addr = addr_to_bits(word_addr_uint, data_memory->get_addr_bits());
-        
+
         // Read current word from memory
         std::vector<bit> current_word = data_memory->read(word_addr);
         std::vector<bit> next_word;
         bool write_next_word = false;
 
         // Handle unaligned accesses that cross word boundaries
-        if ((is_sh.value() && offset == 3) || (is_sw.value() && offset != 0)) {
+        if ((is_sh.value() && offset == 3) || (is_sw.value() && offset != 0))
+        {
             next_word = data_memory->read(addr_to_bits(word_addr_uint + 1, data_memory->get_addr_bits()));
             write_next_word = true;
         }
 
         // Merge new data into current word
-        if (is_sb.value()) {
+        if (is_sb.value())
+        {
             // Store byte: replace relevant 8 bits
             size_t start_bit = offset * 8;
-            for (size_t i = 0; i < 8; ++i) {
-                if (start_bit + i < current_word.size()) {
+            for (size_t i = 0; i < 8; ++i)
+            {
+                if (start_bit + i < current_word.size())
+                {
                     current_word[start_bit + i] = data[i];
                 }
             }
         }
-        else if (is_sh.value()) {
+        else if (is_sh.value())
+        {
             // Store halfword: replace relevant 16 bits
-            if (offset <= 2) {
+            if (offset <= 2)
+            {
                 size_t start_bit = offset * 8;
-                for (size_t i = 0; i < 16; ++i) {
-                    if (start_bit + i < current_word.size()) {
+                for (size_t i = 0; i < 16; ++i)
+                {
+                    if (start_bit + i < current_word.size())
+                    {
                         current_word[start_bit + i] = data[i];
                     }
                 }
-            } else {
+            }
+            else
+            {
                 // Handle cross-word boundary
-                for (size_t i = 0; i < 8; ++i) {
-                    current_word[24 + i] = data[i];     // Last byte of current word
-                    next_word[i] = data[i + 8];         // First byte of next word
+                for (size_t i = 0; i < 8; ++i)
+                {
+                    current_word[24 + i] = data[i]; // Last byte of current word
+                    next_word[i] = data[i + 8];     // First byte of next word
                 }
                 write_next_word = true;
             }
         }
-        else if (is_sw.value()) {
+        else if (is_sw.value())
+        {
             // Store word
-            if (offset == 0) {
+            if (offset == 0)
+            {
                 current_word = data;
-            } else {
+            }
+            else
+            {
                 // Handle unaligned word storage
                 size_t bits_in_current = (4 - offset) * 8;
-                for (size_t i = 0; i < bits_in_current; ++i) {
+                for (size_t i = 0; i < bits_in_current; ++i)
+                {
                     current_word[offset * 8 + i] = data[i];
                 }
-                for (size_t i = 0; i < (32 - bits_in_current); ++i) {
+                for (size_t i = 0; i < (32 - bits_in_current); ++i)
+                {
                     next_word[i] = data[bits_in_current + i];
                 }
                 write_next_word = true;
@@ -356,7 +375,8 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
 
         // Write modified words back to memory
         data_memory->write(word_addr, current_word);
-        if (write_next_word) {
+        if (write_next_word)
+        {
             data_memory->write(addr_to_bits(word_addr_uint + 1, data_memory->get_addr_bits()), next_word);
         }
     }
@@ -405,6 +425,17 @@ void ZeroLoop::handle_syscall()
     {
         int exit_code = register_to_int_internal(a0);
         std::cout << "\nProgram exited with code " << exit_code << std::endl;
+        std::cout << "\nTotal Gate Count :" << bit::ops() << "gates" << std::endl;
+
+        std::cout << "\nDetailed Gate Count Breakdown:\n";
+        std::cout << "-----------------------------\n";
+        for (const auto &op : bit_ops_selectors)
+        {
+            if (op == bit_ops_cost)
+                continue; // Skip the total cost, already printed
+            std::cout << std::setw(10) << std::left << bit::opsname(op) << ": "
+                      << bit::ops(op) << " gates\n";
+        }
         exit(0);
     }
     break;
@@ -566,7 +597,6 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
         final_pc.at(i) = should_jalr.mux(final_pc.at(i), jalr_target_word.at(i));
     }
 
-
     // 12. Update PC
     pc.update_pc_brj(final_pc.get_data_uint());
 
@@ -591,14 +621,12 @@ void ZeroLoop::execute_instruction(uint32_t instruction)
     Register u_type_imm(decoded.imm_unsigned, 32);
     conditional_register_write(is_lui, decoded.rd, u_type_imm);
 
-
     // Write U-Type immediates for AUIPC, saves PC + U-Imm on Reg[rd]
     conditional_register_write(is_auipc, decoded.rd, new_auipc);
 
     // Write CSR result
     conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);
     conditional_csr_write(should_write_csr, decoded.csr_field, rs1);
-
 }
 
 RegisterFile &ZeroLoop::get_register_file()
