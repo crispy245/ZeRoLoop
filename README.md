@@ -17,6 +17,11 @@ cd ../
 make run
 ```
 
+To run a accurate version where the ROM (instruction memory) is created using constant-time RAM, the run:
+```bash 
+make accurate
+```
+
 We provided a small program in C named `main.c`. Please modify with the code you wish to benchmark.
 
 ## Running compliance suite
