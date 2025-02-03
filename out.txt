@@ -1,2 +1,0 @@
-rm -f program
-g++ -I./include -std=c++17 src/main.cpp src/alu.cpp src/bigint_mpz.cpp src/bit.cpp src/bit_vector_cost.cpp src/decoder.cpp src/pc.cpp src/ram.cpp src/reg_file.cpp src/register.cpp src/zero_loop.cpp -o program -lgmp

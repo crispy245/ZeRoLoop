@@ -9,8 +9,9 @@ private:
     Decoder decoder;
     ALU alu;
     PC pc;
-    vector<uint32_t> *instruction_memory; // Pointer to instruction memory
-    RAM *data_memory;                     // Pointer to data memory
+    vector<uint32_t> *instruction_memory_fast;  // Pointer to instruction memory using uint32_t, faster
+    RAM *instruction_memory_slow;               // Pointer to instruction memory using RAM, slower
+    RAM *data_memory;                           // Pointer to data memory
     std::vector<Register> csrs;
 
 public:
@@ -19,7 +20,8 @@ public:
         : reg_file(num_registers, reg_width),
           alu(),
           pc(0, reg_width),
-          instruction_memory(nullptr),
+          instruction_memory_fast(nullptr),
+          instruction_memory_slow(nullptr),
           data_memory(nullptr),
           csrs(4096) {}
 
@@ -29,7 +31,8 @@ public:
           decoder(other.decoder),
           alu(other.alu),
           pc(other.pc),
-          instruction_memory(other.instruction_memory),
+          instruction_memory_fast(other.instruction_memory_fast),
+          instruction_memory_slow(other.instruction_memory_slow),
           data_memory(other.data_memory),
           csrs(other.csrs) {}
 
@@ -37,7 +40,8 @@ public:
     {
         reg_file = other.reg_file;
         pc = other.pc;
-        instruction_memory = other.instruction_memory;
+        instruction_memory_fast = other.instruction_memory_fast;
+        instruction_memory_slow = other.instruction_memory_slow;
         data_memory = other.data_memory;
     }
 
@@ -66,6 +70,7 @@ public:
     // Stage operations
     void execute_instruction(uint32_t instruction);
     void connect_memories(vector<uint32_t> *instr_mem, RAM *data_mem);
+    void connect_memories(RAM *instr_mem, RAM *data_mem);
     void run_program();
 
     // syscalls

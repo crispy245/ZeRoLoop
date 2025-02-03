@@ -48,10 +48,16 @@ uint32_t register_to_uint_internal(Register &reg)
     return result;
 }
 
-// Connect memories
+// Connect memories, overloaded for vector<uint32_t> and RAM
 void ZeroLoop::connect_memories(vector<uint32_t> *instr_mem, RAM *data_mem)
 {
-    instruction_memory = instr_mem;
+    instruction_memory_fast = instr_mem;
+    data_memory = data_mem;
+}
+
+void ZeroLoop::connect_memories(RAM* instr_mem, RAM *data_mem)
+{
+    instruction_memory_slow = instr_mem;
     data_memory = data_mem;
 }
 
@@ -92,7 +98,7 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
                 byte_addr_uint |= (1 << i);
             }
         }
-        byte_addr_uint = byte_addr_uint - 8192; // horrible code sorry, but it is supposed to represent where data starts 
+        byte_addr_uint = byte_addr_uint - 8192; // horrible code sorry, but it is supposed to represent where data starts
         uint32_t word_addr_uint = byte_addr_uint >> 2;
         uint32_t offset = byte_addr_uint & 0x3;
 

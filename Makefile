@@ -17,7 +17,11 @@ debug: program
 	gdb ./program
 
 run: program
-	./program c/vmh/main.rv32.elf.vmh
+	./program c/vmh/main.rv32.elf.vmh false
+
+accurate: program
+	./program c/vmh/main.rv32.elf.vmh true
+
 
 test-all: program
 	@echo "Running all VMH tests from riscv_tests_vmh directory..." | tee $(TEST_LOG)
@@ -25,7 +29,7 @@ test-all: program
 	@START=$$(date +%s%N); \
 	for file in c/riscv_tests_vmh/*.vmh; do \
 		echo "\nTesting $${file}..." | tee -a $(TEST_LOG); \
-		output=$$(./program "$${file}" 2>&1); \
+		output=$$(./program "$${file}" 2>&1 false); \
 		exit_code=$$(echo "$$output" | grep -oP 'Program exited with code \K\-?[0-9]+'); \
 		if [ -z "$$exit_code" ]; then \
 			echo "✗ FAIL: $${file} (No exit code found in output)" | tee -a $(TEST_LOG); \
