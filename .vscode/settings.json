@@ -71,6 +71,7 @@
         "alu.h": "c",
         "ram_cpu.h": "c",
         "cinttypes": "cpp",
-        "debug.inlineValues": "on",  
+        "debug.inlineValues": "on",
+        "chacha.h": "c"
     }
 }

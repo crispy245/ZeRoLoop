@@ -42,8 +42,6 @@ DEPS = $(SRCS:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
 # Compiler flags
 CFLAGS = -march=rv32i_zicsr \
     -mabi=ilp32 \
-    -nostdlib \
-    -ffreestanding \
     -nostartfiles \
     -fno-exceptions \
     -fno-inline \
@@ -70,7 +68,7 @@ LDFLAGS = -T memory_map.ld -lgcc
 # Create directory structure
 $(shell mkdir -p $(SRC_DIR) $(INC_DIR) $(OBJ_DIR) $(DEP_DIR) $(BIN_DIR) $(DUMP_DIR) $(VMH_DIR) $(RISCV_TESTS_VMH))
 
-.PHONY: all clean depend test
+.PHONY: all clean depend test asm
 
 all: $(BIN_DIR)/$(TARGET) generate-dumps move-outputs
 
@@ -112,6 +110,18 @@ $(BIN_DIR)/%.elf: $(RISCV_TESTS_DIR)/%.S
 # The 'test' target depends on all individual test ELF files.
 test: $(TEST_NAMES:%=$(BIN_DIR)/%.elf)
 	@echo "All RISC-V tests have been built."
+
+# Pattern rule for assembling .S files (similar to the test rule)
+$(BIN_DIR)/%.elf: $(ASM_DIR)/%.S
+	@echo "Building $*..."
+	$(CC) $(TEST_FLAGS) -T memory_map.ld -nostdlib $< -o $@
+	$(OBJDUMP) -EL -sz --section=.text --section=.data --section=.rodata $@ > $(DUMP_DIR)/$*.dump
+	$(OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.rodata $@ > $(DUMP_DIR)/$*.detailed.dump
+	$(PYTHON) $(VMH_SCRIPT) $(DUMP_DIR)/$*.dump > $(VMH_DIR)/$(TARGET).vmh
+
+# The 'asm' target depends on the main.S file
+asm: $(BIN_DIR)/main.elf
+	@echo "Compiled main.S, generated dumps, and moved outputs."
 
 clean:
 	rm -f $(OBJS) $(DEPS)

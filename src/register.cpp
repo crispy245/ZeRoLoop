@@ -40,9 +40,11 @@ Register::Register(int32_t value, size_t width) : data(width, bit(0))
     }
 }
 
-Register::Register(uint32_t value, size_t width) : data(width, bit(0)) {
+Register::Register(uint32_t value, size_t width) : data(width, bit(0))
+{
     std::vector<bit> value_bits = bit_vector_from_int32(value);
-    for (size_t i = 0; i < width && i < value_bits.size(); i++) {
+    for (size_t i = 0; i < width && i < value_bits.size(); i++)
+    {
         data[i] = value_bits[i];
     }
 }
@@ -109,4 +111,30 @@ void Register::update_data(bigint new_data)
     {
         data.at(i) = new_data_reg.at(i);
     }
+}
+
+std::vector<bit> Register::operator()(size_t start, size_t end) const
+{
+    if (start >= data.size() || end > data.size() || start >= end)
+    {
+        throw std::out_of_range("Invalid range");
+    }
+    return std::vector<bit>(data.begin() + start, data.begin() + end);
+}
+
+uint32_t Register::operator()(size_t start, size_t end, bool as_uint32_t) const
+{
+    if (start >= data.size() || end > data.size() || start >= end)
+    {
+        throw std::out_of_range("Invalid range");
+    }
+    uint32_t result = 0;
+    for (size_t i = start; i < end; ++i)
+    {
+        if (data[i].value())
+        {
+            result |= (1 << (i - start));
+        }
+    }
+    return result;
 }

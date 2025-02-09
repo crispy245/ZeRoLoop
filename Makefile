@@ -5,6 +5,8 @@ SOURCES = $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 OBJECTS = $(SOURCES:.cpp=.o)
 MAIN_OBJ = src/main.o
 TEST_LOG = test_results.txt
+DECODE = true
+
 
 program: $(MAIN_OBJ) $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
@@ -17,10 +19,10 @@ debug: program
 	gdb ./program
 
 run: program
-	./program c/vmh/main.rv32.elf.vmh false
+	./program c/vmh/main.rv32.elf.vmh false $(DECODE)
 
 accurate: program
-	./program c/vmh/main.rv32.elf.vmh true
+	./program c/vmh/main.rv32.elf.vmh true $(DECODE)
 
 
 test-all: program

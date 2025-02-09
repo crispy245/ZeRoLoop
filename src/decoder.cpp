@@ -129,6 +129,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     uint32_t opcode = get_opcode(instruction);
     uint32_t funct3 = get_funct3(instruction);
     uint32_t funct7 = get_funct7(instruction);
+    decoded.funct3 = get_funct3(instruction);
 
     // Store funct3 and funct7 bits
     for (int i = 0; i < 3; i++)

@@ -186,6 +186,7 @@ Register ALU::compare_sltu(Register a, Register b)
     result.at(0) = bit(found_diff ? a_less : 0);
     return result;
 }
+
 Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
 {
     Register result(a.width());
@@ -221,7 +222,6 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
     srl_result = logical_shift_right(a, b);
     sra_result = arithmetic_shift_right(a, b);
     slt_result = compare_slt(a, b);
-    // slt_result.print("slt result");
     sltu_result = compare_sltu(a, b);
 
     for (bigint i = 0; i < a.width(); i++)
@@ -250,6 +250,95 @@ Register ALU::execute(Register &a, Register &b, std::vector<bit> alu_op)
         temp = is_slt.mux(temp, slt_result.at(i));
 
         result.at(i) = temp;
+    }
+
+    return result;
+}
+
+Register ALU::execute_partial(Register &a, Register &b, std::vector<bit> alu_op)
+{
+    Register result(a.width());
+
+    // Convert alu_op bits to booleans
+    bool op3 = alu_op[3].value();
+    bool op2 = alu_op[2].value();
+    bool op1 = alu_op[1].value();
+    bool op0 = alu_op[0].value();
+
+    // Decode operations using boolean logic
+    bool is_add = !op3 && !op2 && !op1 && !op0; // 0000
+    bool is_sub = op3 && !op2 && !op1 && !op0;  // 1000
+    bool is_sll = !op3 && op2 && !op1 && !op0;  // 0100
+    bool is_slt = op3 && op2 && !op1 && !op0;   // 1100
+    bool is_sltu = !op3 && !op2 && op1 && !op0; // 0010
+    bool is_xor = op3 && !op2 && op1 && !op0;   // 1010
+    bool is_srl = !op3 && op2 && op1 && !op0;   // 0110
+    bool is_sra = op3 && op2 && op1 && !op0;    // 1110
+    bool is_or = !op3 && !op2 && !op1 && op0;   // 0001
+    bool is_and = op3 && !op2 && !op1 && op0;   // 1001
+
+    if (is_add)
+    {
+        // std::cout << "Performing ADD operation" << std::endl;
+        add(result, a, b);
+    }
+    else if (is_sub)
+    {
+        // std::cout << "Performing SUB operation" << std::endl;
+        subtract(result, a, b);
+    }
+    else if (is_sll)
+    {
+        // std::cout << "Performing SLL (Shift Left Logical) operation" << std::endl;
+        result = logical_shift_left(a, b);
+    }
+    else if (is_srl)
+    {
+        // std::cout << "Performing SRL (Shift Right Logical) operation" << std::endl;
+        result = logical_shift_right(a, b);
+    }
+    else if (is_sra)
+    {
+        // std::cout << "Performing SRA (Shift Right Arithmetic) operation" << std::endl;
+        result = arithmetic_shift_right(a, b);
+    }
+    else if (is_slt)
+    {
+        // std::cout << "Performing SLT (Set Less Than) operation" << std::endl;
+        result = compare_slt(a, b);
+    }
+    else if (is_sltu)
+    {
+        // std::cout << "Performing SLTU (Set Less Than Unsigned) operation" << std::endl;
+        result = compare_sltu(a, b);
+    }
+    else if (is_xor)
+    {
+        // std::cout << "Performing XOR operation" << std::endl;
+        for (bigint i = 0; i < a.width(); i++)
+        {
+            result.at(i) = a.at(i) ^ b.at(i);
+        }
+    }
+    else if (is_or)
+    {
+        // std::cout << "Performing OR operation" << std::endl;
+        for (bigint i = 0; i < a.width(); i++)
+        {
+            result.at(i) = a.at(i) | b.at(i);
+        }
+    }
+    else if (is_and)
+    {
+        // std::cout << "Performing AND operation" << std::endl;
+        for (bigint i = 0; i < a.width(); i++)
+        {
+            result.at(i) = a.at(i) & b.at(i);
+        }
+    }
+    else
+    {
+        std::cout << "No valid ALU operation selected" << std::endl;
     }
 
     return result;

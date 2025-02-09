@@ -54,13 +54,19 @@ public:
 
     // ALU operations
     Register execute_alu(Register &a, Register &b, std::vector<bit> alu_op);
+    Register execute_alu_partial(Register &a, Register &b, std::vector<bit> alu_op);
     void subtract(Register &result, Register a, Register b);
 
 
     // Conditional write to units
     void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits);
+    void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, uint32_t f3_bits);
     Register conditional_memory_read(const bit &should_read, const std::vector<bit> &addr, std::vector<bit> f3_bits);
+    Register conditional_memory_read(const bit &should_read, const std::vector<bit> &addr, uint32_t f3_bits);
+
+
     void conditional_register_write(const bit &should_write, size_t rd, const Register &data);
+    void conditional_register_write(const bool should_write, size_t rd, const Register &data);
     void conditional_csr_write(const bit &should_write, size_t csr_pos, const Register &data);
  
     void full_adder(bit &s, bit &c, bit a, bit b, bit cin);
@@ -68,11 +74,15 @@ public:
     uint32_t get_pc() { return pc.read_pc(); };
 
     // Stage operations
-    void execute_instruction(uint32_t instruction);
+    void execute_instruction_with_decoder(uint32_t instruction);
+    void execute_instruction_without_decoder(uint32_t instruction);
     void connect_memories(vector<uint32_t> *instr_mem, RAM *data_mem);
     void connect_memories(RAM *instr_mem, RAM *data_mem);
     void run_program();
 
     // syscalls
     void handle_syscall();
+
+    // print info
+    void print_details();
 };

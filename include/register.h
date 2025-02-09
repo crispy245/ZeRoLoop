@@ -37,4 +37,10 @@ public:
     const std::vector<bit> &get_data();
     void update_data(bigint new_data);
     uint32_t get_data_uint() const;
+
+     // Overload () operator to return a vector of bits
+    std::vector<bit> operator()(size_t start, size_t end) const;
+    
+    // Overload () operator to return a uint32_t
+    uint32_t operator()(size_t start, size_t end, bool as_uint32_t) const;
 };

@@ -9,7 +9,7 @@ _start:
     call main
 
     # Exit if main returns
-    li a7, 93  # SYS_EXIT
+    li a7, 0  # SYS_EXIT
     li a0, 0   # Exit code
     ecall
 
