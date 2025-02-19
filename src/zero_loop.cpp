@@ -640,6 +640,14 @@ void ZeroLoop::handle_syscall()
     }
     break;
 
+    case 93: // SYS_EXIT
+    {
+        int exit_code = register_to_int_internal(a0);
+        std::cout << "\nProgram exited with code " << exit_code << std::endl;
+        print_details();
+        exit(0);
+    }
+
     case 0: // SYS_EXIT
     {
         int exit_code = register_to_int_internal(a0);
@@ -668,6 +676,91 @@ Register sign_extend_offset(int32_t offset, size_t bits)
     }
 
     return result;
+}
+
+void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
+{
+    auto decoded = decoder.decode(instruction);
+
+    Register rs1 = read_register(decoded.rs1);
+    Register rs2 = read_register(decoded.rs2);
+    Register rs2_imm(decoded.imm, 32);
+
+    // ALU input selection
+    Register alu_input_2(32);
+    for (int i = 0; i < 32; i++)
+    {
+        alu_input_2.at(i) = bit(bit(decoded.is_immediate) & ~decoded.branch).mux(rs2.at(i), rs2_imm.at(i));
+    }
+
+    Register alu_result = execute_alu(rs1, alu_input_2, decoded.alu_op);
+
+    bit is_zero = 1; // Assume result is zero
+    for (size_t i = 0; i < 32; i++)
+    {
+        is_zero = is_zero & ~alu_result.at(i);
+    }
+
+    bit is_not_zero = ~is_zero;
+    bit is_rs1_lesser_rs2 = alu_result.at(0);
+
+    // Branch condition logic
+    bit should_branch = (decoded.is_beq & is_zero) | (decoded.is_bne & is_not_zero) |
+                        (decoded.is_blt & is_rs1_lesser_rs2) | (decoded.is_bge & ~is_rs1_lesser_rs2) |
+                        (decoded.is_bltu & is_rs1_lesser_rs2) | (decoded.is_bgeu & ~is_rs1_lesser_rs2);
+    should_branch &= bit(decoded.is_branch);
+
+    // Memory operations
+    std::vector<bit> mem_addr = alu_result.get_data();
+    Register load_result = conditional_memory_read(decoded.is_load, mem_addr, decoded.f3_bits);
+    conditional_memory_write(bit(decoded.is_store), mem_addr, rs2.get_data(), decoded.f3_bits);
+
+    // JALR target calculation
+    Register jalr_target_byte(alu_result);
+    jalr_target_byte.at(0) = bit(0);
+    Register jalr_target_word(jalr_target_byte.get_data_uint() >> 2, 32);
+
+    // PC calculations
+    Register pc_val(pc.read_pc(), 32);
+    Register pc_val_byte_addr(pc_val.get_data_uint() << 2, 32);
+    Register next_pc(pc_val.get_data_uint() + 1, 32);
+    Register return_addr_byte(next_pc.get_data_uint() << 2, 32);
+
+    if (instruction == 0x00000073)
+    { // Syscall detection
+        handle_syscall();
+        pc.update_pc_brj(next_pc.get_data_uint());
+        return;
+    }
+
+    // Branch & Jump targets
+    Register branch_target_word((pc_val_byte_addr.get_data_uint() + decoded.imm) >> 2, 32);
+    Register jal_target_word(branch_target_word);
+
+    // AUIPC Update
+    Register new_auipc(pc_val_byte_addr.get_data_uint() + decoded.imm, 32);
+    bit is_auipc = bit(decoded.auipc);
+
+    // Final PC selection
+    Register final_pc(32);
+    for (size_t i = 0; i < 32; i++)
+    {
+        final_pc.at(i) = next_pc.at(i);
+        final_pc.at(i) = should_branch.mux(final_pc.at(i), branch_target_word.at(i));
+        final_pc.at(i) = bit(decoded.jal).mux(final_pc.at(i), jal_target_word.at(i));
+        final_pc.at(i) = bit(decoded.is_jalr).mux(final_pc.at(i), jalr_target_word.at(i));
+    }
+
+    pc.update_pc_brj(final_pc.get_data_uint());
+
+    // Register Write Back
+    conditional_register_write(~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op), decoded.rd, alu_result);
+    conditional_register_write(bit(decoded.is_load), decoded.rd, load_result);
+    conditional_register_write(bit(decoded.is_jump), decoded.rd, return_addr_byte);
+    conditional_register_write(bit(decoded.lui), decoded.rd, Register(decoded.imm_unsigned, 32));
+    conditional_register_write(is_auipc, decoded.rd, new_auipc);
+    conditional_register_write(bit(decoded.is_csrrw), decoded.rd, csrs[decoded.rs1]);
+    conditional_csr_write(bit(decoded.is_csrrw), decoded.csr_field, rs1);
 }
 
 void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
@@ -836,13 +929,10 @@ void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
     // Write CSR result
     conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);
     conditional_csr_write(should_write_csr, decoded.csr_field, rs1);
-
 }
 
 void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
 {
-
-
 
     // Extract fields directly from instruction
     uint32_t opcode = instruction & 0x7F;
@@ -1051,5 +1141,4 @@ void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
     pc.update_pc_brj(final_pc.get_data_uint());
 
     // print_registers();
-
 }

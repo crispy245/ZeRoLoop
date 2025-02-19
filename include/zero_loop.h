@@ -75,6 +75,8 @@ public:
 
     // Stage operations
     void execute_instruction_with_decoder(uint32_t instruction);
+    void execute_instruction_with_decoder_optimized(uint32_t instruction);
+
     void execute_instruction_without_decoder(uint32_t instruction);
     void connect_memories(vector<uint32_t> *instr_mem, RAM *data_mem);
     void connect_memories(RAM *instr_mem, RAM *data_mem);

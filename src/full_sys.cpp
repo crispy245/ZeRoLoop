@@ -246,7 +246,7 @@ void run_full_system(char *instr_location, bool ram_accurate, bool with_decoder)
         if (with_decoder)
         {
 
-            nextCPU->execute_instruction_with_decoder(instruction);
+            nextCPU->execute_instruction_with_decoder_optimized(instruction);
         }
         else
         {

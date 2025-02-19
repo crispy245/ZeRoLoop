@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/program",
-            "args": ["c/vmh/main.rv32.elf.vmh"],
+            "args": ["c/vmh/main.rv32.elf.vmh", "false", "true"],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -16,6 +16,11 @@
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set breakpoint at main",
+                    "text": "-break-insert main",
                     "ignoreFailures": true
                 }
             ],

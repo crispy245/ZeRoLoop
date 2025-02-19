@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O3 -I./include -std=c++17 -g
+CXXFLAGS = -O3 -I./include -std=c++17 -g 
 LDFLAGS = -lgmp
 SOURCES = $(filter-out src/main.cpp, $(wildcard src/*.cpp))
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -14,7 +14,7 @@ program: $(MAIN_OBJ) $(OBJECTS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-debug: CXXFLAGS := -O0 -I./include -std=c++17 -g
+debug: CXXFLAGS := -O0 -I./include -std=c++17 -g -fno-inline-small-functions
 debug: program
 	gdb ./program
 
@@ -31,7 +31,7 @@ test-all: program
 	@START=$$(date +%s%N); \
 	for file in c/riscv_tests_vmh/*.vmh; do \
 		echo "\nTesting $${file}..." | tee -a $(TEST_LOG); \
-		output=$$(./program "$${file}" 2>&1 false); \
+		output=$$(./program "$${file}" 2>&1 false true); \
 		exit_code=$$(echo "$$output" | grep -oP 'Program exited with code \K\-?[0-9]+'); \
 		if [ -z "$$exit_code" ]; then \
 			echo "✗ FAIL: $${file} (No exit code found in output)" | tee -a $(TEST_LOG); \
