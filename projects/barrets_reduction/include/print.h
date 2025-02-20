@@ -26,41 +26,26 @@ static inline void print_str(const char *str) {
 }
 
 static inline void print_int(int num) {
-    // Handle negative numbers
+    // Handle negative numbers.
     if (num < 0) {
         print_char('-');
         num = -num;
     }
     
-    // Handle special case for 0
-    if (num == 0) {
-        print_char('0');
+    // Base case: if num is a single digit, print it directly.
+    if (num < 10) {
+        print_char('0' + num);
         return;
     }
     
-    char buffer[12];  // Enough for 32-bit int including sign and null
-    int i = 0;
-    
-    // Convert to characters using repeated subtraction instead of division
-    while (num > 0) {
-        int digit = 0;
-        int temp = num;
-        
-        while (temp >= 10) {
-            temp -= 10;
-            digit++;
-        }
-        
-        buffer[i] = '0' + digit;
-        num = temp;
-        i++;
+    int quotient = 0;
+    int temp = num;
+    while (temp >= 10) {
+        temp -= 10;
+        quotient++;
     }
-    
-    // Print in reverse order
-    while (i > 0) {
-        i--;
-        print_char(buffer[i]);
-    }
-}
 
+    print_int(quotient);
+    print_char('0' + temp);
+}
 

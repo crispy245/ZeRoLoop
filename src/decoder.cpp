@@ -129,7 +129,10 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     uint32_t opcode = get_opcode(instruction);
     uint32_t funct3 = get_funct3(instruction);
     uint32_t funct7 = get_funct7(instruction);
-    decoded.funct3 = get_funct3(instruction);
+    
+    decoded.funct3 = funct3;
+    decoded.funct7 = funct7;
+    decoded.opcode = opcode;
 
     // Store funct3 and funct7 bits
     for (int i = 0; i < 3; i++)
@@ -161,6 +164,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.jalr = op_bits[6] & op_bits[5] & ~op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
     decoded.lui = ~op_bits[6] & op_bits[5] & op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
     decoded.auipc = ~op_bits[6] & ~op_bits[5] & op_bits[4] & ~op_bits[3] & op_bits[2] & op_bits[1] & op_bits[0];
+    decoded.custom = ~op_bits[6] & ~op_bits[5] & ~op_bits[4] & op_bits[3] & ~op_bits[2] & op_bits[1] & op_bits[0]; //CUSTOM0 0x0B
 
     // R-type operations
     decoded.is_add = decoded.r_type & ~decoded.f3_bits[2] & ~decoded.f3_bits[1] & ~decoded.f3_bits[0] & ~decoded.f7_bits[5];
@@ -241,6 +245,7 @@ Decoder::DecodedInstruction Decoder::decode(uint32_t instruction)
     decoded.is_jump = decoded.jal.mux(bit(0), bit(1)).value();
     decoded.is_jump = decoded.jalr.mux(bit(decoded.is_jump), bit(1)).value();
     decoded.is_jalr = decoded.jalr.mux(bit(0), bit(1)).value();
+    decoded.is_custom = decoded.custom.mux(bit(0), bit(1)).value();
 
     bit is_immediate = bit(0);
     is_immediate = is_immediate | decoded.i_alu;

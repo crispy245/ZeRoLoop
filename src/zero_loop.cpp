@@ -38,6 +38,14 @@ Register ZeroLoop::execute_alu(Register &a, Register &b, std::vector<bit> alu_op
     return alu.execute(a, b, alu_op);
 }
 
+Register ZeroLoop::execute_plug_in_unit(Register &ret, Register a, Register b,    uint32_t funct3, uint32_t funct7, uint32_t opcode)
+
+{
+    return plugin.execute_plug_in_unit(ret, a, b, funct3, funct7, opcode);
+}
+
+
+
 Register ZeroLoop::execute_alu_partial(Register &a, Register &b, std::vector<bit> alu_op)
 {
     return alu.execute_partial(a, b, alu_op);
@@ -119,7 +127,7 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
                 byte_addr_uint |= (1 << i);
             }
         }
-        byte_addr_uint = byte_addr_uint - 8192; // horrible code sorry, but it is supposed to represent where data starts
+        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE; // horrible code sorry, but it is supposed to represent where data starts
         uint32_t word_addr_uint = byte_addr_uint >> 2;
         uint32_t offset = byte_addr_uint & 0x3;
 
@@ -254,7 +262,7 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
                 byte_addr_uint |= (1 << i);
             }
         }
-        byte_addr_uint = byte_addr_uint - 8192; // horrible code sorry, but it is supposed to represent where data starts
+        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE; // horrible code sorry, but it is supposed to represent where data starts
         uint32_t word_addr_uint = byte_addr_uint >> 2;
         uint32_t offset = byte_addr_uint & 0x3;
 
@@ -397,7 +405,7 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
         }
 
         // Adjust for data memory base address
-        byte_addr_uint = byte_addr_uint - 8192;
+        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE;
 
         // Calculate word address and byte offset
         uint32_t word_addr_uint = byte_addr_uint >> 2;
@@ -507,7 +515,7 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
         }
 
         // Adjust for data memory base address
-        byte_addr_uint = byte_addr_uint - 8192;
+        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE;
 
         // Calculate word address and byte offset
         uint32_t word_addr_uint = byte_addr_uint >> 2;
@@ -693,7 +701,15 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
         alu_input_2.at(i) = bit(bit(decoded.is_immediate) & ~decoded.branch).mux(rs2.at(i), rs2_imm.at(i));
     }
 
+
     Register alu_result = execute_alu(rs1, alu_input_2, decoded.alu_op);
+    
+    Register plug_in_result(0,32);
+    bigint start_count_mult = bit::ops();
+    plug_in_result = execute_plug_in_unit(plug_in_result, rs1, alu_input_2, decoded.funct3, decoded.funct7, decoded.opcode);
+    bigint end_count_mult = bit::ops();
+
+    std::cout<<"MULT TOOK: "<<std::dec<<end_count_mult - start_count_mult<<std::endl;
 
     bit is_zero = 1; // Assume result is zero
     for (size_t i = 0; i < 32; i++)
@@ -713,6 +729,9 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
     // Memory operations
     std::vector<bit> mem_addr = alu_result.get_data();
     Register load_result = conditional_memory_read(decoded.is_load, mem_addr, decoded.f3_bits);
+    if(decoded.is_load){
+        //std::cout<<" ADDR IS : "<< alu_result.get_data_uint()<<" LOAD RESULT IS :" <<load_result.get_data_uint()<<std::endl;
+    }
     conditional_memory_write(bit(decoded.is_store), mem_addr, rs2.get_data(), decoded.f3_bits);
 
     // JALR target calculation
@@ -725,6 +744,8 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
     Register pc_val_byte_addr(pc_val.get_data_uint() << 2, 32);
     Register next_pc(pc_val.get_data_uint() + 1, 32);
     Register return_addr_byte(next_pc.get_data_uint() << 2, 32);
+
+    //std::cout<<"PC IS : "<<std::hex<<pc_val_byte_addr.get_data_uint()<<std::endl;
 
     if (instruction == 0x00000073)
     { // Syscall detection
@@ -754,6 +775,7 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
     pc.update_pc_brj(final_pc.get_data_uint());
 
     // Register Write Back
+    conditional_register_write(decoded.custom, decoded.rd, plug_in_result);
     conditional_register_write(~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op), decoded.rd, alu_result);
     conditional_register_write(bit(decoded.is_load), decoded.rd, load_result);
     conditional_register_write(bit(decoded.is_jump), decoded.rd, return_addr_byte);
@@ -822,7 +844,7 @@ void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
 
     conditional_memory_write(should_store, mem_addr, rs2.get_data(), decoded.f3_bits);
 
-    // 9. Jump Handling
+    // 6. Jump Handling
 
     // Calculate JALR target as byte address and clear LSB
     Register jalr_target_byte(32);
@@ -836,7 +858,7 @@ void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
     bit should_jalr = bit(decoded.is_jalr);
     bit should_jal = bit(decoded.jal.value());
 
-    // 10. PC Related
+    // 9. PC Related
     Register pc_val(pc.read_pc(), 32);
     Register pc_val_byte_addr(pc_val.get_data_uint() << 2, 32); // Byte-aligned PC
     Register plus_1(1, 32);
@@ -899,10 +921,10 @@ void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
         final_pc.at(i) = should_jalr.mux(final_pc.at(i), jalr_target_word.at(i));
     }
 
-    // 11. Update PC
+    // 10. Update PC
     pc.update_pc_brj(final_pc.get_data_uint());
 
-    // 12. Register Write Back
+    // 11. Register Write Back
     bit should_write_alu = ~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op);
     bit should_write_load = bit(decoded.is_load);
     bit should_write_j = bit(decoded.is_jump);
@@ -1075,6 +1097,11 @@ void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
     {
         alu_result = execute_alu_partial(rs1, alu_input2, alu_op);
     }
+
+    // Plugin interface
+    Register plug_in_result(0,32);
+    execute_plug_in_unit(plug_in_result,rs1,alu_input2,funct3,funct7,opcode);
+
 
     // Memory address calculation
     std::vector<bit> mem_addr_bits = alu_result.get_data();

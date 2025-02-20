@@ -175,17 +175,17 @@ void run_full_system(char *instr_location, bool ram_accurate, bool with_decoder)
     bit::clear_all();
     std::cout << "\n=== Testing RISC-V CPU Implementation ===\n";
 
-    std::vector<uint32_t> instruction_memory_fast(16384);
-    RAM instruction_memory_slow(16384, 32);
+    std::vector<uint32_t> instruction_memory_fast(INSTR_MEM_SIZE);
+    RAM instruction_memory_slow(INSTR_MEM_SIZE, 32);
     RAM data_memory(8192, 32);
 
     if (ram_accurate)
     {
-        load_instructions(&instruction_memory_slow, &data_memory, instr_location);
+        load_instructions(&instruction_memory_slow, &data_memory, instr_location, (INSTR_MEM_SIZE/4));// Since they are vmh, it will start at INSTR_MEM_SIZE/4
     }
     else
     {
-        load_instructions(instruction_memory_fast, &data_memory, instr_location);
+        load_instructions(instruction_memory_fast, &data_memory, instr_location, (INSTR_MEM_SIZE/4));
     }
 
     std::cout << "\nStarting program execution:\n";
@@ -258,7 +258,10 @@ void run_full_system(char *instr_location, bool ram_accurate, bool with_decoder)
 
         bigint current_end_instr_gate_count = bit::ops();
         bigint current_instr_gate_count = current_end_instr_gate_count - current_start_instr_gate_count;
+    
+        std::cout<< "CURRENT INSTRUCTION IS : "<<std::hex<<instruction<<std::endl;
         std::cout << "CURRENT INSTRUCTION TOOK: " << current_instr_gate_count << " GATES" << std::endl;
+        nextCPU->print_registers();
         nextCPU->print_details();
     }
 

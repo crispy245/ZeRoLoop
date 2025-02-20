@@ -13,6 +13,7 @@ private:
     RAM *instruction_memory_slow;               // Pointer to instruction memory using RAM, slower
     RAM *data_memory;                           // Pointer to data memory
     std::vector<Register> csrs;
+    PLUGIN plugin;
 
 public:
     // Constructor
@@ -57,6 +58,8 @@ public:
     Register execute_alu_partial(Register &a, Register &b, std::vector<bit> alu_op);
     void subtract(Register &result, Register a, Register b);
 
+    // PLUGIN operations
+    Register execute_plug_in_unit(Register &ret, Register a, Register b,    uint32_t funct3, uint32_t funct7, uint32_t opcode);
 
     // Conditional write to units
     void conditional_memory_write(const bit &should_write, const std::vector<bit> &addr, const std::vector<bit> &data, std::vector<bit> f3_bits);

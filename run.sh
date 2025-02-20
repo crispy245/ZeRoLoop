@@ -1,5 +1,6 @@
 cd c
 make clean
-make asm
+make
 cd ../
-make run DECODE=false -j8
+make clean
+make run DECODE=true -j8

@@ -47,7 +47,7 @@ CFLAGS = -march=rv32i_zicsr \
     -fno-inline \
     -Wall \
     -Wextra \
-    -O0 \
+    -O3 \
     -g \
     -I$(INC_DIR)
 

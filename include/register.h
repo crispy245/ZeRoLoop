@@ -21,12 +21,26 @@ private:
         return result;
     }
 
+
+    static std::vector<bit> bit_vector_from_uint64(long long value) // should rename
+    {
+        std::vector<bit> result(64);
+        // Handle both positive and negative numbers
+        for (int i = 0; i < 64; i++)
+        {
+            result[i] = bit((value >> i) & 1);
+        }
+        return result;
+    }
+
+    
 public:
     explicit Register(size_t width = 32);
     Register(std::vector<bit> &bits);
     Register(bigint value, size_t width);
     Register(uint32_t value, size_t width);
     Register(int32_t value, size_t width);
+    Register(unsigned long long value, size_t);
 
     bit get_bit(size_t index) const;
     size_t width() const;
@@ -44,3 +58,4 @@ public:
     // Overload () operator to return a uint32_t
     uint32_t operator()(size_t start, size_t end, bool as_uint32_t) const;
 };
+

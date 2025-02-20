@@ -48,6 +48,7 @@ public:
         bit jalr;
         bit lui;
         bit auipc;
+        bit custom;
 
         // Instruction type fields
         bool is_alu_op = false;
@@ -57,11 +58,14 @@ public:
         bool is_branch = false;
         bool is_jump = false;
         bool is_jalr = false;
+        bool is_custom = false;
 
         // Function bits
         vector<bit> f3_bits; // 3 bits
         vector<bit> f7_bits; // 7 bits
         uint32_t funct3;     // Keep uint32_t version for convenience
+        uint32_t funct7;
+        uint32_t opcode;
 
         // ALU operation
         std::vector<bit> alu_op;
