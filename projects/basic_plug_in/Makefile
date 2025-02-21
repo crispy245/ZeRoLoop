@@ -155,7 +155,7 @@ move-outputs:
 # Pattern rule for assembling .S files (for test purposes)
 $(RV_BIN_DIR)/%.elf: $(RV_ASM_DIR)/%.S
 	@echo "Building $*..."
-	$(RV_CC) $(RV_TEST_FLAGS) -T memory_map.ld -nostdlib $< -o $@
+	$(RV_CC) $(RV_TEST_FLAGS) -T ../../c/memory_map.ld -nostdlib $< -o $@
 	$(RV_OBJDUMP) -EL -sz --section=.text --section=.data --section=.rodata $@ > $(RV_DUMP_DIR)/$*.dump
 	$(RV_OBJDUMP) -D -S -EL --source --section=.text --section=.data --section=.rodata $@ > $(RV_DUMP_DIR)/$*.detailed.dump
 	$(RV_PYTHON) $(RV_VMH_SCRIPT) $(RV_DUMP_DIR)/$*.dump > $(RV_VMH_DIR)/$(RV_TARGET).vmh
