@@ -4,9 +4,8 @@
 
 int main() {
 
-    int a = 5;
-    int b = 5;
+    int a = 2147483648;
+    int b = 2147483647;
     int c = cfu_op0_hw(1,a,b);
-    print_int(c);
-    return 1;
+    return c;
 }

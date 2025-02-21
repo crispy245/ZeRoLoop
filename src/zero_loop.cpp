@@ -709,7 +709,7 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
     plug_in_result = execute_plug_in_unit(plug_in_result, rs1, alu_input_2, decoded.funct3, decoded.funct7, decoded.opcode);
     bigint end_count_mult = bit::ops();
 
-    std::cout<<"MULT TOOK: "<<std::dec<<end_count_mult - start_count_mult<<std::endl;
+    //std::cout<<"MULT TOOK: "<<std::dec<<end_count_mult - start_count_mult<<std::endl;
 
     bit is_zero = 1; // Assume result is zero
     for (size_t i = 0; i < 32; i++)

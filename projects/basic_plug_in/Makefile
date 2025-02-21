@@ -86,11 +86,10 @@ RV_ASM_DIR    := asm
 
 # Python configuration
 RV_PYTHON     := python3
-RV_VMH_SCRIPT := objdump2vmh.py  # Ensure this script exists in your project directory
-
+RV_VMH_SCRIPT := ../../c/objdump2vmh.py 
 # Source files
 RV_SRCS       := $(wildcard $(RV_SRC_DIR)/*.c)
-RV_ASM_SRCS   := $(RV_ASM_DIR)/crt0.s  # Startup code
+RV_ASM_SRCS   := ../../c/asm/crt0.S  # Startup code
 RV_HEADERS    := $(wildcard $(RV_INC_DIR)/*.h)
 RV_OBJS       := $(RV_ASM_SRCS:$(RV_ASM_DIR)/%.s=$(RV_OBJ_DIR)/%.o) \
                  $(RV_SRCS:$(RV_SRC_DIR)/%.c=$(RV_OBJ_DIR)/%.o)
@@ -118,7 +117,7 @@ RV_TEST_FLAGS := -march=rv32izicsr \
                  -I$(RISCV_TESTS_DIR)
 
 # Linker flags for RISC‑V build (renamed to avoid conflict)
-RV_LDFLAGS  := -T memory_map.ld -lgcc
+RV_LDFLAGS  := -T ../../c/memory_map.ld -lgcc
 
 # Create RISC‑V directories (if they don’t exist)
 $(shell mkdir -p $(RV_SRC_DIR) $(RV_INC_DIR) $(RV_OBJ_DIR) $(RV_DEP_DIR) $(RV_BIN_DIR) $(RV_DUMP_DIR) $(RV_VMH_DIR) $(RISCV_TESTS_VMH))
@@ -128,7 +127,7 @@ $(shell mkdir -p $(RV_SRC_DIR) $(RV_INC_DIR) $(RV_OBJ_DIR) $(RV_DEP_DIR) $(RV_BI
 # Main target for RISC‑V code generation
 code: $(RV_BIN_DIR)/$(RV_TARGET) generate-dumps move-outputs
 
-# Compile assembly files (e.g. crt0.s)
+# Compile assembly files
 $(RV_OBJ_DIR)/%.o: $(RV_ASM_DIR)/%.s
 	$(RV_CC) $(RV_CFLAGS) -c $< -o $@
 
@@ -149,8 +148,9 @@ generate-dumps: $(RV_BIN_DIR)/$(RV_TARGET)
 
 # Move generated dump and VMH files to their directories
 move-outputs:
-	mv $(RV_BIN_DIR)/*.dump $(RV_DUMP_DIR)/
-	mv $(RV_BIN_DIR)/*.vmh $(RV_VMH_DIR)/
+	mv $(RV_BIN_DIR)/$(RV_TARGET).dump $(RV_DUMP_DIR)/
+	mv $(RV_BIN_DIR)/$(RV_TARGET).detailed.dump $(RV_DUMP_DIR)/
+	mv $(RV_BIN_DIR)/$(RV_TARGET).vmh $(RV_VMH_DIR)/
 
 # Pattern rule for assembling .S files (for test purposes)
 $(RV_BIN_DIR)/%.elf: $(RV_ASM_DIR)/%.S
