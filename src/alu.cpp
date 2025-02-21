@@ -18,9 +18,14 @@ void ALU::full_adder(bit &s, bit &c, bit a, bit b, bit cin)
 Register ALU::add(Register &ret, Register a, Register b)
 {
     bit c = bit(0); // Initialize carry to 0
-    for (bigint i = 0; i < a.width(); i++)
+
+    //Shrink the input to the size of the return register
+    Register input_a(a.get_data_uint(),ret.width());
+    Register input_b(b.get_data_uint(),ret.width());
+
+    for (bigint i = 0; i < ret.width(); i++)
     {
-        full_adder(ret.at(i), c, a.at(i), b.at(i), c);
+        full_adder(ret.at(i), c, input_a.at(i), input_b.at(i), c);
     }
     return ret;
 }
