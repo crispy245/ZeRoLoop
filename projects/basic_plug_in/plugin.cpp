@@ -1,6 +1,5 @@
 #include "plugin.h"
 
-
 void full_adder(bit &s, bit &c, bit a, bit b, bit cin)
 {
     bit t = (a ^ b);
@@ -14,20 +13,14 @@ Register PLUGIN::execute_plug_in_unit(Register &ret, Register a, Register b,
 
     Register result(0, 32);
 
-    if (opcode == 0x0B)
-    {   
-
-        if (funct3 == 0 && funct7 == 1)
-        {   
-
-            bit c = bit(0); 
-            for (bigint i = 0; i < a.width(); i++)
-            {
-                full_adder(result.at(i), c, a.at(i), b.at(i), c);
-            }
-        }
+    bit c = bit(0);
+    for (bigint i = 0; i < a.width(); i++)
+    {
+        full_adder(result.at(i), c, a.at(i), b.at(i), c);
     }
 
-
-    return result;
+    // Warning: it's your responsability to wire the correct output depending of the
+    // passed on funct3 and funct7
+    if(funct3 == 0 & funct7 == 1) return result;
+    else return Register(0,32);
 }

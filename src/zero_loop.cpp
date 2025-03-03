@@ -18,6 +18,31 @@ void ZeroLoop::print_details()
     }
 }
 
+// Start = 0, End = 1
+// We put the start at the end of ZeroLoop declaration so it does not count
+// the overhead of that first instruction and then viceversa with end.
+// We put end the the start of ZeroLoop delcation so it... (same idea).
+void ZeroLoop::check_for_counter(uint32_t instr, bool start_or_end)
+{
+    // CUSTOM1 0x2B
+    uint32_t opcode = (instr & 0x7F);
+    uint32_t funct3 = ((instr >> 12) & 0x7);
+    if (opcode == 0x2B) // CUSTOM1
+    {
+        if (funct3 == 0 && !start_or_end)
+        {
+            std::cout << "\nCOUNTER0 START" << std::endl;
+            start_count1 = bit::ops();
+        }
+        else if (funct3 == 1 && start_or_end)
+        {
+            end_count1 = bit::ops();
+            std::cout << "\nCOUNTER0 END" << std::endl;
+            std::cout << "TOTAL COUNT OF COUNT0 : " << (end_count1 - start_count1) << " GATES " << std::endl;
+        }
+    }
+}
+
 Register ZeroLoop::read_register(size_t pos)
 {
     return reg_file.read(pos);
@@ -38,13 +63,10 @@ Register ZeroLoop::execute_alu(Register &a, Register &b, std::vector<bit> alu_op
     return alu.execute(a, b, alu_op);
 }
 
-Register ZeroLoop::execute_plug_in_unit(Register &ret, Register a, Register b,    uint32_t funct3, uint32_t funct7, uint32_t opcode)
-
+Register ZeroLoop::execute_plug_in_unit(Register &ret, Register a, Register b, uint32_t funct3, uint32_t funct7, uint32_t opcode)
 {
     return plugin.execute_plug_in_unit(ret, a, b, funct3, funct7, opcode);
 }
-
-
 
 Register ZeroLoop::execute_alu_partial(Register &a, Register &b, std::vector<bit> alu_op)
 {
@@ -688,6 +710,9 @@ Register sign_extend_offset(int32_t offset, size_t bits)
 
 void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
 {
+    // End counter
+    check_for_counter(instruction, 1);
+
     auto decoded = decoder.decode(instruction);
 
     Register rs1 = read_register(decoded.rs1);
@@ -701,15 +726,14 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
         alu_input_2.at(i) = bit(bit(decoded.is_immediate) & ~decoded.branch).mux(rs2.at(i), rs2_imm.at(i));
     }
 
-
     Register alu_result = execute_alu(rs1, alu_input_2, decoded.alu_op);
-    
-    Register plug_in_result(0,32);
+
+    Register plug_in_result(0, 32);
     bigint start_count_mult = bit::ops();
     plug_in_result = execute_plug_in_unit(plug_in_result, rs1, alu_input_2, decoded.funct3, decoded.funct7, decoded.opcode);
     bigint end_count_mult = bit::ops();
 
-    //std::cout<<"MULT TOOK: "<<std::dec<<end_count_mult - start_count_mult<<std::endl;
+    // std::cout<<"MULT TOOK: "<<std::dec<<end_count_mult - start_count_mult<<std::endl;
 
     bit is_zero = 1; // Assume result is zero
     for (size_t i = 0; i < 32; i++)
@@ -729,8 +753,9 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
     // Memory operations
     std::vector<bit> mem_addr = alu_result.get_data();
     Register load_result = conditional_memory_read(decoded.is_load, mem_addr, decoded.f3_bits);
-    if(decoded.is_load){
-        //std::cout<<" ADDR IS : "<< alu_result.get_data_uint()<<" LOAD RESULT IS :" <<load_result.get_data_uint()<<std::endl;
+    if (decoded.is_load)
+    {
+        // std::cout<<" ADDR IS : "<< alu_result.get_data_uint()<<" LOAD RESULT IS :" <<load_result.get_data_uint()<<std::endl;
     }
     conditional_memory_write(bit(decoded.is_store), mem_addr, rs2.get_data(), decoded.f3_bits);
 
@@ -745,7 +770,7 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
     Register next_pc(pc_val.get_data_uint() + 1, 32);
     Register return_addr_byte(next_pc.get_data_uint() << 2, 32);
 
-    //std::cout<<"PC IS : "<<std::hex<<pc_val_byte_addr.get_data_uint()<<std::endl;
+    // std::cout<<"PC IS : "<<std::hex<<pc_val_byte_addr.get_data_uint()<<std::endl;
 
     if (instruction == 0x00000073)
     { // Syscall detection
@@ -783,6 +808,9 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
     conditional_register_write(is_auipc, decoded.rd, new_auipc);
     conditional_register_write(bit(decoded.is_csrrw), decoded.rd, csrs[decoded.rs1]);
     conditional_csr_write(bit(decoded.is_csrrw), decoded.csr_field, rs1);
+
+    // Start counter
+    check_for_counter(instruction, 0);
 }
 
 void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
@@ -956,6 +984,8 @@ void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
 void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
 {
 
+    check_for_counter(instruction,1);
+
     // Extract fields directly from instruction
     uint32_t opcode = instruction & 0x7F;
     uint32_t rd_pos = (instruction >> 7) & 0x1F;
@@ -1093,16 +1123,17 @@ void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
     {
         handle_syscall();
     }
-    else if (!(is_jal || is_jalr || is_lui))
+    else if (!(is_jal || is_jalr || is_lui) && opcode != 0X0B)
     {
         alu_result = execute_alu_partial(rs1, alu_input2, alu_op);
     }
 
     // Plugin interface
-    Register plug_in_result(0,32);
-    execute_plug_in_unit(plug_in_result,rs1,alu_input2,funct3,funct7,opcode);
-
-
+    Register plug_in_result(0, 32);
+    if (opcode == 0X0B)
+    {
+        execute_plug_in_unit(plug_in_result, rs1, alu_input2, funct3, funct7, opcode);
+    }
     // Memory address calculation
     std::vector<bit> mem_addr_bits = alu_result.get_data();
 
@@ -1168,4 +1199,7 @@ void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
     pc.update_pc_brj(final_pc.get_data_uint());
 
     // print_registers();
+
+    check_for_counter(instruction,0);
+
 }

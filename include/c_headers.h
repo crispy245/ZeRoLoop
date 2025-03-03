@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cassert>
 #include <iostream>
+#include <bigint.h>
 
 #include "register.h"
 #include "reg_file.h"

@@ -14,6 +14,8 @@ private:
     RAM *data_memory;                           // Pointer to data memory
     std::vector<Register> csrs;
     PLUGIN plugin;
+    bigint start_count1;
+    bigint end_count1;
 
 public:
     // Constructor
@@ -24,7 +26,9 @@ public:
           instruction_memory_fast(nullptr),
           instruction_memory_slow(nullptr),
           data_memory(nullptr),
-          csrs(4096) {}
+          csrs(4096),
+          start_count1(0),
+          end_count1(0) {}
 
     // Deep copy constructor
     ZeroLoop(const ZeroLoop &other)
@@ -35,7 +39,9 @@ public:
           instruction_memory_fast(other.instruction_memory_fast),
           instruction_memory_slow(other.instruction_memory_slow),
           data_memory(other.data_memory),
-          csrs(other.csrs) {}
+          csrs(other.csrs),
+          start_count1(other.start_count1),
+          end_count1(other.end_count1) {}
 
     void copy_state_from(const ZeroLoop &other)
     {
@@ -44,6 +50,8 @@ public:
         instruction_memory_fast = other.instruction_memory_fast;
         instruction_memory_slow = other.instruction_memory_slow;
         data_memory = other.data_memory;
+        start_count1 = other.start_count1;
+        end_count1   = other.end_count1;
     }
 
     // RegisterFile operations
@@ -87,6 +95,9 @@ public:
 
     // syscalls
     void handle_syscall();
+
+    // Measure gate count
+    void check_for_counter(uint32_t instr, bool start_or_end);
 
     // print info
     void print_details();
