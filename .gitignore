@@ -1,0 +1,6 @@
+*.o
+*.dump
+*.d
+*.vmh
+*.elf
+program
