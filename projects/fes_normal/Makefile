@@ -95,6 +95,9 @@ RV_OBJS       := $(RV_ASM_SRCS:$(RV_ASM_DIR)/%.s=$(RV_OBJ_DIR)/%.o) \
                  $(RV_SRCS:$(RV_SRC_DIR)/%.c=$(RV_OBJ_DIR)/%.o)
 RV_DEPS       := $(RV_SRCS:$(RV_SRC_DIR)/%.c=$(RV_DEP_DIR)/%.d)
 
+N 			  := 3
+M 			  := 3
+
 # Compiler and assembler flags
 RV_CFLAGS   := -march=rv32i_zicsr \
                -mabi=ilp32 \
@@ -105,7 +108,9 @@ RV_CFLAGS   := -march=rv32i_zicsr \
 			   -Wextra     \
 		       -O3		   \
 			   -g \
-               -I$(RV_INC_DIR)
+               -I$(RV_INC_DIR) \
+			   -DN=$(N) -DM=$(M)  # Pass N and M to the C code
+
 RV_ASFLAGS  := -march=rv32i_zicsr -I$(RV_INC_DIR)
 
 # RISC‑V test flags (if needed)
@@ -122,7 +127,7 @@ RV_LDFLAGS  := -T ../../c/memory_map.ld -lgcc
 # Create RISC‑V directories (if they don’t exist)
 $(shell mkdir -p $(RV_SRC_DIR) $(RV_INC_DIR) $(RV_OBJ_DIR) $(RV_DEP_DIR) $(RV_BIN_DIR) $(RV_DUMP_DIR) $(RV_VMH_DIR) $(RISCV_TESTS_VMH))
 
-.PHONY: code depend test asm
+.PHONY: code depend test asm 
 
 # Main target for RISC‑V code generation
 code: $(RV_BIN_DIR)/$(RV_TARGET) generate-dumps move-outputs

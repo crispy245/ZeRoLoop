@@ -4,3 +4,5 @@
 *.vmh
 *.elf
 program
+projects/fes_unrolled/src/main.c
+*.txt

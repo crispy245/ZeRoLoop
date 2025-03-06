@@ -323,9 +323,6 @@ def main():
     
     args = parser.parse_args()
     
-    if args.n > 10:
-        print("Warning: n > 10 will result in very large code!")
-    
     unrolled_code = generate_unrolled_code(args.n, args.m, args.print_flag)
     print(unrolled_code)
 

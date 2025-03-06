@@ -5,7 +5,7 @@
 
 // Define maximum sizes for arrays
 #define MAX_N 10              // Maximum number of variables
-#define MAX_M 30              // Maximum number of polynomials
+#define MAX_M 10              // Maximum number of polynomials
 #define MAX_SOLS (1 << MAX_N) // Maximum number of solutions (2^MAX_N)
 
 /*
@@ -187,15 +187,15 @@ void fes_eval(Poly polys[MAX_M], int m, int n, unsigned int sols[MAX_SOLS],
 }
 
 int main(void) {
-  int n = 5;  // number of variables
-  int m = 10; // number of polynomials
+  int n = N;  // number of variables
+  int m = M; // number of polynomials
 
   // Generate a random "known solution" (an n–bit vector)
-  int sol[MAX_N] = {1, 0, 1, 1, 0, 0, 1, 0, 0, 1};
+  int sol[MAX_N];
 
   print_str("Known solution:\n");
   for (int i = 0; i < n; i++) {
-    // sol[i] = rand_xorshift() % 2;
+    sol[i] = rand_xorshift() % 2;
     print_int(sol[i]);
   }
 
@@ -221,34 +221,34 @@ int main(void) {
     }
   }
 
-  // Print the input polynomials.
-  print_str("\nInput polynomials:\n");
-  for (int i = 0; i < m; i++) {
-    print_str("f");
-    print_int(i);
-    print_str(" = ");
-    print_int(polys[i].constant);
+  // // Print the input polynomials.
+  // print_str("\nInput polynomials:\n");
+  // for (int i = 0; i < m; i++) {
+  //   print_str("f");
+  //   print_int(i);
+  //   print_str(" = ");
+  //   print_int(polys[i].constant);
 
-    for (int j = 0; j < n; j++) {
-      if (polys[i].linear[j]) {
-        print_str(" + x");
-        print_int(j);
-      }
-    }
+  //   for (int j = 0; j < n; j++) {
+  //     if (polys[i].linear[j]) {
+  //       print_str(" + x");
+  //       print_int(j);
+  //     }
+  //   }
 
-    for (int k = 0; k < n; k++) {
-      for (int j = 0; j < k; j++) {
-        if (polys[i].quad[k][j]) {
-          print_str(" + x");
-          print_int(k);
-          print_str("*x");
-          print_int(j);
-        }
-      }
-    }
+  //   for (int k = 0; k < n; k++) {
+  //     for (int j = 0; j < k; j++) {
+  //       if (polys[i].quad[k][j]) {
+  //         print_str(" + x");
+  //         print_int(k);
+  //         print_str("*x");
+  //         print_int(j);
+  //       }
+  //     }
+  //   }
 
-    print_char('\n');
-  }
+  //   print_char('\n');
+  // }
 
   // Evaluate (enumerate) all candidate solutions.
   int sol_count;
@@ -258,17 +258,17 @@ int main(void) {
   fes_eval(polys, m, n, sols, &sol_count);
   DEACTIVATE_COUNTER(0);
 
-  print_str("\nFound solution: ...\n");
-  print_char('\n');
-  // Print the found solutions (each printed as an n–bit binary string).
-  for (int i = 0; i < sol_count; i++) {
-    unsigned int sol_val = sols[i];
-    for (int j = 0; j < n; j++) { // Iterate from 0 to n-1 (LSB to MSB)
-      print_int((sol_val >> j) & 1);
-      print_char(' ');
-    }
-    print_char('\n');
-  }
+  // print_str("\nFound solution: ...\n");
+  // print_char('\n');
+  // // Print the found solutions (each printed as an n–bit binary string).
+  // for (int i = 0; i < sol_count; i++) {
+  //   unsigned int sol_val = sols[i];
+  //   for (int j = 0; j < n; j++) { // Iterate from 0 to n-1 (LSB to MSB)
+  //     print_int((sol_val >> j) & 1);
+  //     print_char(' ');
+  //   }
+  //   print_char('\n');
+  // }
 
   return 0;
 }

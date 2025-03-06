@@ -16,6 +16,10 @@ private:
     PLUGIN plugin;
     bigint start_count1;
     bigint end_count1;
+    bigint start_count_only_cpu_1;
+    bigint end_count_only_cpu_1;
+    bigint total_cpu_gate_count;
+    bigint total_cpu_gate_count_plus_mem;
 
 public:
     // Constructor
@@ -28,7 +32,11 @@ public:
           data_memory(nullptr),
           csrs(4096),
           start_count1(0),
-          end_count1(0) {}
+          end_count1(0) ,
+          start_count_only_cpu_1(0),
+          end_count_only_cpu_1(0),
+          total_cpu_gate_count(0),
+          total_cpu_gate_count_plus_mem(0){}
 
     // Deep copy constructor
     ZeroLoop(const ZeroLoop &other)
@@ -41,7 +49,11 @@ public:
           data_memory(other.data_memory),
           csrs(other.csrs),
           start_count1(other.start_count1),
-          end_count1(other.end_count1) {}
+          end_count1(other.end_count1),
+          start_count_only_cpu_1(other.start_count_only_cpu_1),
+          end_count_only_cpu_1(other.end_count_only_cpu_1),
+          total_cpu_gate_count(other.total_cpu_gate_count),
+          total_cpu_gate_count_plus_mem(other.total_cpu_gate_count_plus_mem){}
 
     void copy_state_from(const ZeroLoop &other)
     {
@@ -52,6 +64,10 @@ public:
         data_memory = other.data_memory;
         start_count1 = other.start_count1;
         end_count1   = other.end_count1;
+        start_count_only_cpu_1 = other.start_count_only_cpu_1;
+        end_count_only_cpu_1 = other.end_count_only_cpu_1;
+        total_cpu_gate_count = other.total_cpu_gate_count;
+        total_cpu_gate_count_plus_mem = other.total_cpu_gate_count_plus_mem;
     }
 
     // RegisterFile operations

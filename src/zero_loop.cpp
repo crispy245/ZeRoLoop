@@ -33,12 +33,16 @@ void ZeroLoop::check_for_counter(uint32_t instr, bool start_or_end)
         {
             std::cout << "\nCOUNTER0 START" << std::endl;
             start_count1 = bit::ops();
+            start_count_only_cpu_1 = total_cpu_gate_count;
         }
         else if (funct3 == 1 && start_or_end)
         {
             end_count1 = bit::ops();
+            end_count_only_cpu_1 = total_cpu_gate_count;
             std::cout << "\nCOUNTER0 END" << std::endl;
             std::cout << "TOTAL COUNT OF COUNT0 : " << (end_count1 - start_count1) << " GATES " << std::endl;
+            std::cout << "TOTAL COUNT OF COUNT0 (ONLY CPU) : " << (end_count_only_cpu_1 - start_count_only_cpu_1) << " GATES " << std::endl;
+
         }
     }
 }
@@ -675,6 +679,7 @@ void ZeroLoop::handle_syscall()
         int exit_code = register_to_int_internal(a0);
         std::cout << "\nProgram exited with code " << exit_code << std::endl;
         print_details();
+        std::cout<<"\n The CPU itself (without counting memory interactions) took: "<< total_cpu_gate_count << " gates" << std::endl;
         exit(0);
     }
 
@@ -710,6 +715,8 @@ Register sign_extend_offset(int32_t offset, size_t bits)
 
 void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
 {
+    bigint current_instruction_gate_count_start = bit::ops();
+
     // End counter
     check_for_counter(instruction, 1);
 
@@ -750,6 +757,10 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
                         (decoded.is_bltu & is_rs1_lesser_rs2) | (decoded.is_bgeu & ~is_rs1_lesser_rs2);
     should_branch &= bit(decoded.is_branch);
 
+    // We measure up to when memory operations occur. Stop until these are done.
+    bigint current_instruction_gate_count_stop = bit::ops();
+    total_cpu_gate_count += current_instruction_gate_count_stop - current_instruction_gate_count_start;
+
     // Memory operations
     std::vector<bit> mem_addr = alu_result.get_data();
     Register load_result = conditional_memory_read(decoded.is_load, mem_addr, decoded.f3_bits);
@@ -758,6 +769,8 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
         // std::cout<<" ADDR IS : "<< alu_result.get_data_uint()<<" LOAD RESULT IS :" <<load_result.get_data_uint()<<std::endl;
     }
     conditional_memory_write(bit(decoded.is_store), mem_addr, rs2.get_data(), decoded.f3_bits);
+
+    current_instruction_gate_count_start = bit::ops();
 
     // JALR target calculation
     Register jalr_target_byte(alu_result);
@@ -811,178 +824,17 @@ void ZeroLoop::execute_instruction_with_decoder_optimized(uint32_t instruction)
 
     // Start counter
     check_for_counter(instruction, 0);
+
+    current_instruction_gate_count_stop = bit::ops();
+    total_cpu_gate_count += current_instruction_gate_count_stop - current_instruction_gate_count_start;
 }
 
-void ZeroLoop::execute_instruction_with_decoder(uint32_t instruction)
-{
-
-    auto decoded = decoder.decode(instruction);
-
-    // 1. Register File Read Stage
-    Register rs1 = read_register(decoded.rs1);
-    Register rs2 = read_register(decoded.rs2);
-
-    // 2. ALU Immediate Preparation
-    Register rs2_imm(decoded.imm, 32);
-
-    // 3. ALU Input Selection
-    Register alu_input_2(32);
-    for (int i = 0; i < 32; i++)
-    {
-        alu_input_2.at(i) = bit(decoded.is_immediate).mux(rs2.at(i), rs2_imm.at(i));
-    }
-
-    // 4. Main ALU Operation
-    Register alu_result = execute_alu(rs1, alu_input_2, decoded.alu_op);
-
-    // 5. Branch Comparison (separate from main ALU)
-    Register branch_comparison(32);
-    subtract(branch_comparison, rs1, rs2);
-
-    // 6. Branch Condition Evaluation
-    int32_t comparison = register_to_int_internal(branch_comparison);
-    uint32_t unsigned_comparison = register_to_uint_internal(branch_comparison);
-
-    bit is_zero(comparison == 0);
-    bit is_negative(comparison < 0);
-    bit is_greater_unsigned(rs1.get_data_uint() >= rs2.get_data_uint());
-    bit is_not_zero = ~is_zero;
-
-    // Calculate branch target
-    Register offset(decoded.imm, 32);
-
-    // Branch condition logic
-    bit beq_taken = decoded.is_beq & is_zero;
-    bit bne_taken = decoded.is_bne & is_not_zero;
-    bit blt_taken = decoded.is_blt & is_negative;
-    bit bge_taken = decoded.is_bge & ~is_negative;
-    bit bltu_taken = decoded.is_bltu & ~is_greater_unsigned;
-    bit bgeu_taken = decoded.is_bgeu & is_greater_unsigned;
-
-    bit should_branch = (beq_taken | bne_taken | blt_taken | bge_taken | bltu_taken | bgeu_taken) & bit(decoded.is_branch);
-
-    Register mem_base(32);
-    Register mem_addr_calc(32);
-    add(mem_addr_calc, rs1, offset);
-    std::vector<bit> mem_addr = mem_addr_calc.get_data();
-
-    Register load_result = conditional_memory_read(decoded.is_load, mem_addr, decoded.f3_bits);
-
-    bit should_store(decoded.is_store);
-
-    conditional_memory_write(should_store, mem_addr, rs2.get_data(), decoded.f3_bits);
-
-    // 6. Jump Handling
-
-    // Calculate JALR target as byte address and clear LSB
-    Register jalr_target_byte(32);
-    add(jalr_target_byte, rs1, offset);
-    jalr_target_byte.at(0) = bit(0); // Clear least significant bit for JALR
-
-    // Convert to word address
-    uint32_t jalr_target_word_val = jalr_target_byte.get_data_uint() >> 2;
-    Register jalr_target_word(jalr_target_word_val, 32);
-
-    bit should_jalr = bit(decoded.is_jalr);
-    bit should_jal = bit(decoded.jal.value());
-
-    // 9. PC Related
-    Register pc_val(pc.read_pc(), 32);
-    Register pc_val_byte_addr(pc_val.get_data_uint() << 2, 32); // Byte-aligned PC
-    Register plus_1(1, 32);
-    Register next_pc(32);
-    Register next_pc_word(32); // Next PC in word addressing (PC + 1)
-
-    add(next_pc, pc_val, plus_1);
-    add(next_pc_word, pc_val, plus_1);
-
-    Register return_addr_byte(32);
-    for (int i = 0; i < 32; i++)
-    {
-        if (i >= 2)
-            return_addr_byte.at(i) = next_pc_word.at(i - 2);
-        else
-            return_addr_byte.at(i) = bit(0);
-    }
-
-    // Detect Syscalls
-    if (instruction == 0x00000073)
-    {
-        handle_syscall();
-        pc.update_pc_brj(next_pc.get_data_uint());
-        return;
-    }
-
-    // Calculate Branch targets as byte address
-    Register branch_target_byte(32);
-    add(branch_target_byte, pc_val_byte_addr, offset);
-
-    // Convert to word address
-    uint32_t branch_target_word_val = branch_target_byte.get_data_uint() >> 2;
-    Register branch_target_word(branch_target_word_val, 32);
-
-    // Calculate JAL target as byte address
-    Register jal_target_byte(32);
-    add(jal_target_byte, pc_val_byte_addr, rs2_imm);
-
-    // Convert to word address
-    uint32_t jal_target_word_val = jal_target_byte.get_data_uint() >> 2;
-    Register jal_target_word(jal_target_word_val, 32);
-
-    Register final_pc(32);
-
-    // AUIPC Update
-    Register new_auipc(32);
-    add(new_auipc, pc_val_byte_addr, rs2_imm);
-    bit is_auipc = bit(decoded.auipc);
-
-    // Default to PC+1
-    for (size_t i = 0; i < 32; i++)
-    {
-        // Default
-        final_pc.at(i) = next_pc.at(i);
-        // If branch taken
-        final_pc.at(i) = should_branch.mux(final_pc.at(i), branch_target_word.at(i));
-        // If JAL taken
-        final_pc.at(i) = should_jal.mux(final_pc.at(i), jal_target_word.at(i));
-        // If JALR taken
-        final_pc.at(i) = should_jalr.mux(final_pc.at(i), jalr_target_word.at(i));
-    }
-
-    // 10. Update PC
-    pc.update_pc_brj(final_pc.get_data_uint());
-
-    // 11. Register Write Back
-    bit should_write_alu = ~bit(decoded.is_branch) & ~bit(decoded.is_store) & bit(decoded.is_alu_op);
-    bit should_write_load = bit(decoded.is_load);
-    bit should_write_j = bit(decoded.is_jump);
-    bit should_write_jalr = bit(decoded.is_jalr);
-    bit should_write_csr = bit(decoded.is_csrrw);
-
-    // Write ALU result, saves alu output on Reg[rd]
-    conditional_register_write(should_write_alu, decoded.rd, alu_result);
-
-    // Write load result, saves memory load on Reg[rd]
-    conditional_register_write(should_write_load, decoded.rd, load_result);
-
-    // Write return address for JAL/R, saves PC + 4 on Reg[rd]
-    conditional_register_write(should_write_j, decoded.rd, return_addr_byte);
-
-    // Write U-Type immediates for LUI, saves U-Imm on Reg[rd]
-    Register u_type_imm(decoded.imm_unsigned, 32);
-    bit is_lui = bit(decoded.lui);
-    conditional_register_write(is_lui, decoded.rd, u_type_imm);
-
-    // Write U-Type immediates for AUIPC, saves PC + U-Imm on Reg[rd]
-    conditional_register_write(is_auipc, decoded.rd, new_auipc);
-
-    // Write CSR result
-    conditional_register_write(should_write_csr, decoded.rd, csrs[decoded.rs1]);
-    conditional_csr_write(should_write_csr, decoded.csr_field, rs1);
-}
 
 void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
 {
+
+    bigint current_instruction_gate_count_start = bit::ops();
+
 
     check_for_counter(instruction,1);
 
@@ -1137,11 +989,16 @@ void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
     // Memory address calculation
     std::vector<bit> mem_addr_bits = alu_result.get_data();
 
+    bigint current_instruction_gate_count_stop = bit::ops();
+    total_cpu_gate_count += current_instruction_gate_count_stop - current_instruction_gate_count_start;
+    
+
     // Memory operations (there is some slight overhead here with the shifting)
-    int start = bit::ops();
     Register load_result = conditional_memory_read(is_load, mem_addr_bits, funct3);
     conditional_memory_write(is_store, mem_addr_bits, rs2.get_data(), funct3);
-    int end = bit::ops();
+
+
+    current_instruction_gate_count_start = bit::ops();
 
     // Write back logic
     bool write_alu = !(is_branch || is_store) && (is_imm_op || (opcode == 0x33));
@@ -1201,5 +1058,9 @@ void ZeroLoop::execute_instruction_without_decoder(uint32_t instruction)
     // print_registers();
 
     check_for_counter(instruction,0);
+
+
+    current_instruction_gate_count_stop = bit::ops();
+    total_cpu_gate_count += current_instruction_gate_count_stop - current_instruction_gate_count_start;
 
 }
