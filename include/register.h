@@ -52,6 +52,13 @@ public:
     void update_data(bigint new_data);
     uint32_t get_data_uint() const;
 
+    // Returns a resized version of the current data (does not modify any data)
+    // example: 
+    // Register a(16);
+    // Register a_smaller = a.resized(8)
+    // Then a_smaller will be a[7..0]
+    Register get_resized(size_t new_width);
+
      // Overload () operator to return a vector of bits
     std::vector<bit> operator()(size_t start, size_t end) const;
     

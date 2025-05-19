@@ -259,10 +259,10 @@ void run_full_system(char *instr_location, bool ram_accurate, bool with_decoder)
         bigint current_end_instr_gate_count = bit::ops();
         bigint current_instr_gate_count = current_end_instr_gate_count - current_start_instr_gate_count;
     
-        std::cout<< "CURRENT INSTRUCTION IS : "<<std::hex<<instruction<<std::endl;
-        std::cout << "CURRENT INSTRUCTION TOOK: " << current_instr_gate_count << " GATES" << std::endl;
-        nextCPU->print_registers();
-        nextCPU->print_details();
+        // std::cout<< "CURRENT INSTRUCTION IS : "<<std::hex<<instruction<<std::endl;
+        // std::cout << "CURRENT INSTRUCTION TOOK: " << current_instr_gate_count << " GATES" << std::endl;
+        // nextCPU->print_registers();
+        // nextCPU->print_details();
     }
 
     delete currentCPU;

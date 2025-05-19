@@ -147,3 +147,17 @@ uint32_t Register::operator()(size_t start, size_t end, bool as_uint32_t) const
     }
     return result;
 }
+
+Register Register::get_resized(size_t new_width)
+{
+    assert(new_width <= this->width());
+    
+    Register resized_reg(new_width);
+    for (size_t i = 0; i < new_width; i++)
+    {
+        resized_reg.at(i) = data[i];
+    }
+
+    return resized_reg;
+
+}

@@ -44,7 +44,7 @@ $(EMU_BUILDDIR)/plugin.o: plugin.cpp | $(EMU_BUILDDIR)
 # Debug, run, and accurate targets for the emulator
 debug: CXXFLAGS := -O0 -I$(EMU_INCDIR) -std=c++17 -g -fno-inline-small-functions
 debug: $(EMU_BUILDDIR)/program
-	gdb --args $(EMU_BUILDDIR)/program vmh/main.rv32.elf.vmh false true
+	gdb $(EMU_BUILDDIR)/program
 
 run: $(EMU_BUILDDIR)/program
 	./$(EMU_BUILDDIR)/program vmh/main.rv32.elf.vmh false $(DECODE)
