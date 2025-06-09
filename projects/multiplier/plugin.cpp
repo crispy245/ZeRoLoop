@@ -113,6 +113,7 @@ Register PLUGIN::execute_plug_in_unit(Register &ret, Register a, Register b,
 
     if (funct7 == 2) { // Multiplier
         return_register = multiplier_res;
+        //printf("\nmultiplier result: %d\n",return_register.get_data_uint());
     }
     else
         return_register = Register(0, 32);

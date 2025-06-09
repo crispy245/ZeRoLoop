@@ -31,7 +31,6 @@ int main() {
 
     // Test with negative numbers
     test_and_print(-5, 5);          
-    test_and_print(326,3329);
     test_and_print(5, -5);          
     // test_and_print(-5, -5);      
     // test_and_print(-127, 127);        
@@ -66,9 +65,9 @@ int main() {
     // test_and_print(17, 23);          
     // test_and_print(101, 199);        
     
-    // // Random values
-    // test_and_print(-123, 456);        
-    // test_and_print(7890, 1234);      
+    // Random values
+    //test_and_print(-123, 456);        
+    test_and_print(7890, 1234);      
     // test_and_print(420, -420);  
     // test_and_print(69, -69);  
     

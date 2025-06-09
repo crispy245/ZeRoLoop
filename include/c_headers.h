@@ -2,8 +2,8 @@
 #pragma once
 
 
-#define INSTR_MEM_SIZE 131072
-#define DATA_MEM_SIZE 131072 // grows upwards
+#define INSTR_MEM_SIZE 1048576
+#define DATA_MEM_SIZE 1048576 // grows upwards
 
 #include <vector>
 #include <cstdint>

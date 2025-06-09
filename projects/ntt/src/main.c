@@ -29,9 +29,9 @@ int16_t montgomery_reduce(int32_t a) {
 
 static int16_t fqmul(int16_t a, int16_t b) {
 
-  // int32_t mul_result = cfu_op0_hw(3,a,b);
-  // return cfu_op0_hw(3,mul_result,0);
-  return montgomery_reduce((int32_t)a * b);
+  int32_t mul_result = cfu_op0_hw(3,a,b);
+  return cfu_op0_hw(3,mul_result,0);
+  //return montgomery_reduce((int32_t)a * b);
 }
 
 
@@ -107,14 +107,14 @@ int main() {
     poly_b[i] = (i * 11 + 17) % KYBER_Q; // Different pattern
   }
 
-  //   // Test 1: Roundtrip NTT->INVNTT preservation
-  //   print_str("Test 1: Roundtrip preservation\n");
-  //   print_str("Original values: ");
-  //   for (int i = 0; i < 5; i++) {  // Print first 5 values
-  //     print_int(poly_a[i]);
-  //     print_str(" ");
-  //   }
-  //   print_str("...\n");
+    // Test 1: Roundtrip NTT->INVNTT preservation
+    print_str("Test 1: Roundtrip preservation\n");
+    print_str("Original values: ");
+    for (int i = 0; i < 5; i++) {  // Print first 5 values
+      print_int(poly_a[i]);
+      print_str(" ");
+    }
+    print_str("...\n");
 
 
   // Apply NTT

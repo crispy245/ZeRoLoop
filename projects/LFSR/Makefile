@@ -76,19 +76,13 @@ RV_DUMP       := $(RV_PROJECT).dump
 
 # Directory structure for RISC‑V build
 RV_SRC_DIR    := src
-RV_INC_DIR    := include
+RV_INC_DIR    := ../../c/include
 RV_OBJ_DIR    := obj
 RV_DEP_DIR    := dep
 RV_BIN_DIR    := bin
 RV_DUMP_DIR   := dump
 RV_VMH_DIR    := vmh
 RV_ASM_DIR    := asm
-RV_CODE_GEN   := gen_unrolled.py  # Script for code generation
-
-# Code generation parameters (defaults)
-N             ?= 5  # Default value for n parameter
-M             ?= 10  # Default value for m parameter
-PRINT_FLAG    ?= 0  # Default value for print flag (0=False, 1=True)
 
 # Python configuration
 RV_PYTHON     := python3
@@ -106,11 +100,11 @@ RV_CFLAGS   := -march=rv32i_zicsr \
                -mabi=ilp32 \
                -nostartfiles \
                -fno-exceptions \
-               -fno-inline \
+			   -fno-inline \
                -Wall       \
-               -Wextra     \
-               -O3         \
-               -g \
+			   -Wextra     \
+		       -O3		   \
+			   -g \
                -I$(RV_INC_DIR)
 RV_ASFLAGS  := -march=rv32i_zicsr -I$(RV_INC_DIR)
 
@@ -125,28 +119,10 @@ RV_TEST_FLAGS := -march=rv32izicsr \
 # Linker flags for RISC‑V build (renamed to avoid conflict)
 RV_LDFLAGS  := -T ../../c/memory_map.ld -lgcc
 
-# Create RISC‑V directories (if they don't exist)
+# Create RISC‑V directories (if they don’t exist)
 $(shell mkdir -p $(RV_SRC_DIR) $(RV_INC_DIR) $(RV_OBJ_DIR) $(RV_DEP_DIR) $(RV_BIN_DIR) $(RV_DUMP_DIR) $(RV_VMH_DIR) $(RISCV_TESTS_VMH))
 
-.PHONY: code depend test asm generate-code all
-
-# New target to first generate code
-all: generate-code code
-
-# Generate code and save to src/main.c
-generate-code:
-	@echo "Generating code with n=$(N), m=$(M), print=$(PRINT_FLAG)..."
-	@if [ -f $(RV_CODE_GEN) ]; then \
-		if [ "$(PRINT_FLAG)" = "1" ]; then \
-			$(RV_PYTHON) $(RV_CODE_GEN) $(N) $(M) --print > $(RV_SRC_DIR)/main.c; \
-		else \
-			$(RV_PYTHON) $(RV_CODE_GEN) $(N) $(M) > $(RV_SRC_DIR)/main.c; \
-		fi; \
-		echo "Code generated and saved to $(RV_SRC_DIR)/main.c"; \
-	else \
-		echo "Warning: Code generation script $(RV_CODE_GEN) not found."; \
-		echo "Please create this file or manually place your code in $(RV_SRC_DIR)/main.c"; \
-	fi
+.PHONY: code depend test asm
 
 # Main target for RISC‑V code generation
 code: $(RV_BIN_DIR)/$(RV_TARGET) generate-dumps move-outputs

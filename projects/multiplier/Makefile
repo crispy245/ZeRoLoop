@@ -76,7 +76,7 @@ RV_DUMP       := $(RV_PROJECT).dump
 
 # Directory structure for RISC‑V build
 RV_SRC_DIR    := src
-RV_INC_DIR    := include
+RV_INC_DIR    := ../../c/include
 RV_OBJ_DIR    := obj
 RV_DEP_DIR    := dep
 RV_BIN_DIR    := bin

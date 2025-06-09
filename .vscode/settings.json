@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.sage": "python",
         "iostream": "cpp",
         "cctype": "cpp",
         "clocale": "cpp",
@@ -73,6 +74,10 @@
         "cinttypes": "cpp",
         "debug.inlineValues": "on",
         "chacha.h": "c",
-        "plugin_c.h": "c"
+        "plugin_c.h": "c",
+        "variant": "cpp",
+        "stddef.h": "c",
+        "aes.h": "c",
+        "stdlib.h": "c"
     }
 }

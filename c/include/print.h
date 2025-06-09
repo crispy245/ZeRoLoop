@@ -1,3 +1,6 @@
+#include <stdarg.h>
+
+
 #pragma once
 
 // Syscall numbers
@@ -25,6 +28,26 @@ static inline void print_str(const char *str) {
     }
 }
 
+static inline void divide_by_10(int num, int *quotient, int *remainder) {
+    int divisor = 10;
+    int q = 0;
+    int r = num;
+    // Subtract larger multiples of 10 at once:
+    while (r >= divisor) {
+        int temp = divisor;
+        int multiple = 1;
+        // Double the divisor until it is too high.
+        while (r >= (temp + temp)) {
+            temp += temp;
+            multiple += multiple;
+        }
+        r -= temp;
+        q += multiple;
+    }
+    *quotient = q;
+    *remainder = r;
+}
+
 static inline void print_int(int num) {
     // Handle negative numbers
     if (num < 0) {
@@ -38,29 +61,66 @@ static inline void print_int(int num) {
         return;
     }
     
-    char buffer[12];  // Enough for 32-bit int including sign and null
+    char buffer[32];  // Enough for 32-bit int
     int i = 0;
     
-    // Convert to characters using repeated subtraction instead of division
+    // Fill buffer in reverse order using our fast division algorithm.
     while (num > 0) {
-        int digit = 0;
-        int temp = num;
-        
-        while (temp >= 10) {
-            temp -= 10;
-            digit++;
-        }
-        
-        buffer[i] = '0' + digit;
-        num = temp;
-        i++;
+        int quotient, remainder;
+        divide_by_10(num, &quotient, &remainder);
+        buffer[i++] = '0' + remainder;
+        num = quotient;
     }
     
-    // Print in reverse order
+    // Print digits in the correct order
     while (i > 0) {
-        i--;
-        print_char(buffer[i]);
+        print_char(buffer[--i]);
     }
 }
 
 
+static void printf(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    
+    while (*format != '\0') {
+        if (*format == '%') {
+            format++;
+            
+            switch (*format) {
+                case 'd': {
+                    int val = va_arg(args, int);
+                    print_int(val);
+                    break;
+                }
+                case 's': {
+                    char* str = va_arg(args, char*);
+                    print_str(str);
+                    break;
+                }
+                case 'c': {
+                    // Note: char is promoted to int in varargs
+                    char c = va_arg(args, int);
+                    print_char(c);
+                    break;
+                }
+                case '%': {
+                    print_char('%');
+                    break;
+                }
+                default: {
+                    // Unsupported format specifier
+                    print_char('%');
+                    print_char(*format);
+                    break;
+                }
+            }
+        } else {
+            print_char(*format);
+        }
+        
+        format++;
+    }
+    
+    va_end(args);
+}

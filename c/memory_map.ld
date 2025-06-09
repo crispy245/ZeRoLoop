@@ -40,7 +40,7 @@ SECTIONS
 
     .stack (NOLOAD) : {
         . = ALIGN(16);
-        . = . + 0x1600;      /* 2KB stack */
+        . = . + 0x1600;     
         . = ALIGN(16);
         __stack_top = .;
     } > data_mem
