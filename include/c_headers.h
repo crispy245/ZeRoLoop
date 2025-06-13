@@ -3,7 +3,7 @@
 
 
 #define INSTR_MEM_SIZE 1048576
-#define DATA_MEM_SIZE 1048576 // grows upwards
+#define DATA_MEM_BASE (INSTR_MEM_SIZE*4) // grows upwards
 
 #include <vector>
 #include <cstdint>

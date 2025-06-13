@@ -3,7 +3,7 @@ ENTRY(_start)
 MEMORY
 {
     instruction_mem (rx) : ORIGIN = 0x00000, LENGTH = 4096K
-    data_mem (rw)       : ORIGIN = 0x400000, LENGTH = 8K  
+    data_mem (rw)       : ORIGIN = 0x400000, LENGTH = 32k  
 }
 
 SECTIONS
@@ -40,7 +40,7 @@ SECTIONS
 
     .stack (NOLOAD) : {
         . = ALIGN(16);
-        . = . + 0x1600;     
+        . = . + 0x2400;     
         . = ALIGN(16);
         __stack_top = .;
     } > data_mem

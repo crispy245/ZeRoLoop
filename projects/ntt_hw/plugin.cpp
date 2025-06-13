@@ -118,17 +118,11 @@ Register subtract(Register &result, Register a, Register b)
     return result;
 }
 
-
-
 Register montgomery_reduce(Register a)
 {
 
-
-    
-
     int16_t QINV = -3327; // -q^(-1) mod 2^16
     int16_t KYBER_Q = 3329;
-
 
     int32_t a_int = (int32_t)a.get_data_uint(); // interpret as signed
     int16_t t = (int16_t)a_int * QINV;
@@ -136,7 +130,6 @@ Register montgomery_reduce(Register a)
     int32_t a_sub_t_sw = a_int - correction;
     int16_t result_sw = a_sub_t_sw >> 16;
 
-    
     Register t_times_qinv(32);
     Register QINV_R(QINV, 32);
     Register a_resized = a.get_resized(32);
@@ -147,7 +140,7 @@ Register montgomery_reduce(Register a)
     // std::cout<<"t_times_qinv HW = "<<(int16_t)t_times_qinv.get_data_uint()<<std::endl;
     // std::cout<<"t_times_qinv SW = "<<t<<std::endl;
 
-    Register t_times_qinv_chopped((int16_t)t_times_qinv.get_data_uint(),32);
+    Register t_times_qinv_chopped((int16_t)t_times_qinv.get_data_uint(), 32);
 
     Register KYBER_Q_R(KYBER_Q, 32);
     Register t_times_kyberq = multiplier(t_times_qinv_chopped, KYBER_Q_R);
@@ -171,14 +164,25 @@ Register PLUGIN::execute_plug_in_unit(Register &ret, Register a, Register b,
 {
     Register return_register(32);
     Register multiplier_res = multiplier(a, b);
-    Register mont_res = montgomery_reduce(a); 
+    Register mont_res = montgomery_reduce(a);
 
+    // RNG Generator
+    static unsigned int counter = 0;
+    // Seed with time and a counter
+    srand(time(NULL) + counter++);
+    Register rand_register(rand(), 32);
+    
+
+    if (funct7 == 1)
+    {   // RNG number
+        return rand_register;
+    }
     if (funct7 == 2)
-    {                                             // montgomery
+    { // montgomery
         return_register = mont_res;
     }
     else if (funct7 == 3)
-    { 
+    {
         return_register = multiplier_res;
     }
     else

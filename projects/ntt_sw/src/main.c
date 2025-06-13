@@ -29,11 +29,10 @@ int16_t montgomery_reduce(int32_t a) {
 
 static int16_t fqmul(int16_t a, int16_t b) {
 
-  int32_t mul_result = cfu_op0_hw(3,a,b);
-  return cfu_op0_hw(3,mul_result,0);
-  //return montgomery_reduce((int32_t)a * b);
+  //int32_t mul_result = cfu_op0_hw(3, a, b);
+  //return cfu_op0_hw(3, mul_result, 0);
+  return montgomery_reduce((int32_t)a * b);
 }
-
 
 int16_t barrett_reduce(int16_t a) {
   int16_t t;
@@ -101,21 +100,20 @@ int main() {
   int16_t poly_b[ARRAY_SIZE]; // Second polynomial for testing
   int16_t ntt_a[ARRAY_SIZE];  // NTT of poly_a
 
-  // Initialize polynomials with deterministic values
+  // Initialize polynomials with random values
   for (int i = 0; i < ARRAY_SIZE; i++) {
-    poly_a[i] = (i * 7 + 13) % KYBER_Q;  // Simple deterministic pattern
-    poly_b[i] = (i * 11 + 17) % KYBER_Q; // Different pattern
+    poly_a[i] = simple_rand() % KYBER_Q;  
+    poly_b[i] = simple_rand()% KYBER_Q; 
   }
 
-    // Test 1: Roundtrip NTT->INVNTT preservation
-    print_str("Test 1: Roundtrip preservation\n");
-    print_str("Original values: ");
-    for (int i = 0; i < 5; i++) {  // Print first 5 values
-      print_int(poly_a[i]);
-      print_str(" ");
-    }
-    print_str("...\n");
-
+  // Test 1: Roundtrip NTT->INVNTT preservation
+  print_str("==== Test 1 =====\n");
+  print_str("Original values: ");
+  for (int i = 0; i < 5; i++) { // Print first 5 values
+    print_int(poly_a[i]);
+    print_str(" ");
+  }
+  print_str("...\n");
 
   // Apply NTT
   for (int i = 0; i < ARRAY_SIZE; i++) {
@@ -125,30 +123,34 @@ int main() {
 
   ACTIVATE_COUNTER(0);
   ntt(ntt_a);
-
-  //   print_str("After NTT: ");
-  //   for (int i = 0; i < 5; i++) {
-  //     print_int(ntt_a[i]);
-  //     print_str(" ");
-  //   }
-  //   print_str("...\n");
-
-
-  // Apply inverse NTT
-  invntt(ntt_a);
   DEACTIVATE_COUNTER(0);
 
-  //   // Normalize results to the correct range
-  //   for (int i = 0; i < ARRAY_SIZE; i++) {
-  //     ntt_a[i] = montgomery_reduce((int32_t)ntt_a[i]);  // Convert out of
-  //     Montgomery domain ntt_a[i] = ((ntt_a[i] % KYBER_Q) + KYBER_Q) %
-  //     KYBER_Q;  // Normalize
-  //   }
+  print_str("After NTT: ");
+  for (int i = 0; i < 5; i++) {
+    print_int(ntt_a[i]);
+    print_str(" ");
+  }
+  print_str("...\n");
 
-    print_str("After INVNTT: ");
-    for (int i = 0; i < 5; i++) {
-      print_int(ntt_a[i]);
-      print_str(" ");
-    }
-    print_str("...\n");
+
+  //   // Apply inverse NTT
+  //   invntt(ntt_a);
+  //   DEACTIVATE_COUNTER(0);
+
+  //   //   // Normalize results to the correct range
+  //   //   for (int i = 0; i < ARRAY_SIZE; i++) {
+  //   //     ntt_a[i] = montgomery_reduce((int32_t)ntt_a[i]);  // Convert out
+  //   of
+  //   //     Montgomery domain ntt_a[i] = ((ntt_a[i] % KYBER_Q) + KYBER_Q) %
+  //   //     KYBER_Q;  // Normalize
+  //   //   }
+
+  //     print_str("After INVNTT: ");
+  //     for (int i = 0; i < 5; i++) {
+  //       print_int(ntt_a[i]);
+  //       print_str(" ");
+  //     }
+  //     print_str("...\n");
+  // }
+
 }
