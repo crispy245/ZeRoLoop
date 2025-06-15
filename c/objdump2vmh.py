@@ -33,7 +33,7 @@ def main():
         m = lp.match(line)
         if m:
             if state == 'init':
-                print('@{0:x}'.format(int(m.group('addr'), 16) // 4))  # Integer division
+                print('@{0:x}'.format(int(m.group('addr'), 16)))  # Integer division, jeez took me months to find this error
             state = 'in-section'
             for v in m.group('v0', 'v1', 'v2', 'v3'):
                 if v:

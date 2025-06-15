@@ -1,5 +1,6 @@
 #include "../include/measure.h"
 #include <../include/print.h>
+#include <../include/plugin_c.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -25,24 +26,9 @@ Example: Polynomial f(x) = 1 + x_1 + x_2 + x_1 x_2 + x_0 x_2 in 3 variables:
 
 // Hardware-based random
 uint64_t rand_hardware() {
-  static uint64_t seed = 0xABCD1234EFEF5678;
-
-  // Mix bits using multiple techniques
-  seed ^= seed << 13;
-  seed ^= seed >> 7;
-  seed ^= seed << 17;
-
-  // Additional mixing
-  seed = seed * 0x5DEECE66DLL;
-  seed ^= seed >> 12;
-  seed ^= seed << 25;
-  seed ^= seed >> 27;
-
-  // Rotate bits for extra entropy
-  seed = (seed << 31 | seed >> 33);
-
-  return seed;
+  return cfu_op0_hw(1,0,0);
 }
+
 
 typedef struct {
   int constant;           // 0 or 1

@@ -2,8 +2,9 @@
 #pragma once
 
 
-#define INSTR_MEM_SIZE 1048576
+#define INSTR_MEM_SIZE 0x100000
 #define DATA_MEM_BASE (INSTR_MEM_SIZE*4) // grows upwards
+#define DATA_MEM_SIZE 8192
 
 #include <vector>
 #include <cstdint>
