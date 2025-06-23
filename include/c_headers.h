@@ -5,6 +5,7 @@
 #define INSTR_MEM_SIZE 0x100000
 #define DATA_MEM_BASE (INSTR_MEM_SIZE*4) // grows upwards
 #define DATA_MEM_SIZE 8192
+#define STACK_SIZE 0X2400
 
 #include <vector>
 #include <cstdint>

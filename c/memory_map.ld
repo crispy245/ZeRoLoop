@@ -3,7 +3,7 @@ ENTRY(_start)
 MEMORY
 {
     instruction_mem (rx) : ORIGIN = 0x00000, LENGTH = 4096K
-    data_mem (rw)       : ORIGIN = 0x400000, LENGTH = 32k  
+    data_mem (rw)        : ORIGIN = 0x400000, LENGTH = 256k  
 }
 
 SECTIONS

@@ -77,7 +77,34 @@ static inline void print_int(int num) {
 }
 
 
-static void printf(const char* format, ...) {
+static void print_hex(unsigned int decimal_input) {
+    if (decimal_input == 0) {
+        print_char('0');
+        return;
+    }
+    
+    char hex_digits[9]; // 8 hex digits + null terminator for 32-bit int
+    int index = 0;
+    unsigned int tmp;
+
+    // Build hex string in reverse order
+    while (decimal_input > 0) {
+        tmp = decimal_input % 16;
+        if (tmp < 10) {
+            hex_digits[index] = tmp + '0';
+        } else {
+            hex_digits[index] = tmp + 'a' - 10;  // lowercase hex
+        }
+        index++;
+        decimal_input /= 16;
+    }
+
+    // Print digits in correct order (reverse of how we built them)
+    while (index > 0) {
+        print_char(hex_digits[--index]);
+    }
+}
+static void own_printf(const char* format, ...) {
     va_list args;
     va_start(args, format);
     
@@ -100,6 +127,11 @@ static void printf(const char* format, ...) {
                     // Note: char is promoted to int in varargs
                     char c = va_arg(args, int);
                     print_char(c);
+                    break;
+                }
+                case 'x':{
+                    int val = va_arg(args, int);
+                    print_hex(val);
                     break;
                 }
                 case '%': {
