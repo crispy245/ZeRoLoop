@@ -55,10 +55,13 @@ void load_instructions(RAM *instr_mem, RAM *data_mem, const char *file_location,
         {
             std::string addr_str = line.substr(1);
             current_addr = hex_to_uint32(addr_str);
+            std::cout<<"Current Address"<<current_addr<<std::endl;
+            std::cout<<"Data Sart Address"<<data_start_addr<<std::endl;
 
             if (current_addr >= data_start_addr)
             {
                 is_data_section = true;
+                std::cout<<"IS DATA SECTION: ON"<<std::endl;
             }
         }
         else
@@ -71,11 +74,12 @@ void load_instructions(RAM *instr_mem, RAM *data_mem, const char *file_location,
 
             if (is_data_section)
             {
-                std::vector<bit> addr_bits = to_bitvector((current_addr - data_start_addr) >> 2, data_mem->get_addr_bits());
+                uint32_t relative_addr = (current_addr - data_start_addr) >> 2;
+                std::vector<bit> addr_bits = to_bitvector(relative_addr, data_mem->get_addr_bits());
                 data_mem->write(addr_bits, value_bits);
-                std::cout << "Loaded DATA at 0x" << std::hex << (current_addr)
-                          << ": 0x" << value
-                          << std::dec << std::endl;
+                std::cout << "Loaded DATA at 0x" << std::hex << current_addr
+                        << ": 0x" << value 
+                        << " at memory index " << std::dec << relative_addr << std::endl;
             }
             else
             {
@@ -133,10 +137,13 @@ void load_instructions(std::vector<uint32_t> &instr_mem, RAM *data_mem, const ch
         {
             std::string addr_str = line.substr(1);
             current_addr = hex_to_uint32(addr_str);
+            std::cout<<"Current Address: "<<std::hex<<current_addr<<std::endl;
+            std::cout<<"Data Sart Address: "<<std::hex<<(data_start_addr >> 2)<<std::endl;
 
             if (current_addr >= data_start_addr)
             {
                 is_data_section = true;
+                std::cout<<"IS DATA SECTION: ON"<<std::endl;
             }
         }
         else
@@ -177,11 +184,11 @@ void run_full_system(char *instr_location, bool ram_accurate, bool with_decoder)
 
     std::vector<uint32_t> instruction_memory_fast(INSTR_MEM_SIZE);
     RAM instruction_memory_slow(INSTR_MEM_SIZE, 32);
-    RAM data_memory(8192, 32);
+    RAM data_memory(DATA_MEM_SIZE, 32);
 
     if (ram_accurate)
     {
-        load_instructions(&instruction_memory_slow, &data_memory, instr_location, (INSTR_MEM_SIZE/4));// Since they are vmh, it will start at INSTR_MEM_SIZE/4
+        load_instructions(&instruction_memory_slow, &data_memory, instr_location, (INSTR_MEM_SIZE));// Since they are vmh, it will start at INSTR_MEM_SIZE/4
     }
     else
     {
@@ -201,6 +208,8 @@ void run_full_system(char *instr_location, bool ram_accurate, bool with_decoder)
     {
         currentCPU->connect_memories(&instruction_memory_fast, &data_memory);
     }
+
+    //bit::clear_all();
 
     while (true)
     {
@@ -259,10 +268,11 @@ void run_full_system(char *instr_location, bool ram_accurate, bool with_decoder)
         bigint current_end_instr_gate_count = bit::ops();
         bigint current_instr_gate_count = current_end_instr_gate_count - current_start_instr_gate_count;
     
-        // std::cout<< "CURRENT INSTRUCTION IS : "<<std::hex<<instruction<<std::endl;
-        // std::cout << "CURRENT INSTRUCTION TOOK: " << current_instr_gate_count << " GATES" << std::endl;
-        // nextCPU->print_registers();
+        //std::cout<< "\nCURRENT INSTRUCTION IS : "<<std::hex<<instruction<<std::endl;
+        //std::cout << "CURRENT INSTRUCTION TOOK: " << current_instr_gate_count << " GATES" << std::endl;
+        //nextCPU->print_registers();
         // nextCPU->print_details();
+        //getchar();
     }
 
     delete currentCPU;

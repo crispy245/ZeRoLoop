@@ -153,7 +153,14 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
                 byte_addr_uint |= (1 << i);
             }
         }
-        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE; // horrible code sorry, but it is supposed to represent where data starts
+        //std::cout<<"\n byte_addr_unit BEFORE:"<<std::hex<<byte_addr_uint<<std::endl;
+        byte_addr_uint = byte_addr_uint - DATA_MEM_BASE; // horrible code sorry, but it is supposed to represent where data starts
+        //std::cout<<"\n byte_addr_unit AFTER :"<<std::hex<<byte_addr_uint<<std::endl;
+
+        // if (byte_addr_uint >= DATA_MEM_SIZE*32) {
+        //     std::cout << "Memory overflow at: " << std::hex << byte_addr_uint << std::endl;
+        //     exit;
+        // }
         uint32_t word_addr_uint = byte_addr_uint >> 2;
         uint32_t offset = byte_addr_uint & 0x3;
 
@@ -178,6 +185,15 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
             next_word_data = data_memory->read(next_word_addr);
         }
 
+        // std::cout<<" Read Next : "<<read_next<<std::endl;
+        // std::cout<<" Memory addr :" <<std::hex<<word_addr_uint*4<<std::endl;
+        // std::cout<<" Memory read: ";
+        // for (int i = static_cast<int>(word_data.size()) - 1; i >= 0; i--)
+        // {
+        //     std::cout << word_data.at(i).value();
+        // }
+        // std::cout << std::endl;
+        
         // Extract relevant bytes
         std::vector<bit> mem_data(32, bit(0));
         if (is_lb || is_lbu)
@@ -288,7 +304,7 @@ Register ZeroLoop::conditional_memory_read(const bit &should_read, const std::ve
                 byte_addr_uint |= (1 << i);
             }
         }
-        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE; // horrible code sorry, but it is supposed to represent where data starts
+        byte_addr_uint = byte_addr_uint - DATA_MEM_BASE; // horrible code sorry, but it is supposed to represent where data starts
         uint32_t word_addr_uint = byte_addr_uint >> 2;
         uint32_t offset = byte_addr_uint & 0x3;
 
@@ -431,7 +447,7 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
         }
 
         // Adjust for data memory base address
-        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE;
+        byte_addr_uint = byte_addr_uint - DATA_MEM_BASE;
 
         // Calculate word address and byte offset
         uint32_t word_addr_uint = byte_addr_uint >> 2;
@@ -541,7 +557,7 @@ void ZeroLoop::conditional_memory_write(const bit &should_write, const std::vect
         }
 
         // Adjust for data memory base address
-        byte_addr_uint = byte_addr_uint - DATA_MEM_SIZE;
+        byte_addr_uint = byte_addr_uint - DATA_MEM_BASE;
 
         // Calculate word address and byte offset
         uint32_t word_addr_uint = byte_addr_uint >> 2;
@@ -673,7 +689,6 @@ void ZeroLoop::handle_syscall()
         std::cout.flush();
     }
     break;
-
     case 93: // SYS_EXIT
     {
         int exit_code = register_to_int_internal(a0);

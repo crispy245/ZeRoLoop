@@ -2,6 +2,13 @@
 #include "../include/plugin_c.h"
 #include "../include/print.h"
 /**
+ * 
+ * SOURCE CODE PERTAINS TO Jhen-Yung Hsu
+ * FOR MORE PLEASE READ : https://gist.github.com/Yunyung/2e38fd71c3fb5967c802049514909569
+ * 
+ */
+
+/**
  * AES Encryption Sysytem 
  * The chinese is encoded by UTF-8
  * Implment AES-128, AES-192, AES-256
